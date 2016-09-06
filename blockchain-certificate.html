@@ -1,0 +1,34 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+`blockchain-certificate`
+Displays a rendered Blockchain Certificate
+
+@demo demo/index.html 
+-->
+
+<dom-module id="blockchain-certificate">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <h2>Hello [[prop1]]</h2>
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'blockchain-certificate',
+
+      properties: {
+        prop1: {
+          type: String,
+          value: 'blockchain-certificate',
+        },
+      },
+
+    });
+  </script>
+</dom-module>
