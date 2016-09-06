@@ -1,4 +1,5 @@
 <link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
 
 <!--
 `blockchain-certificate`
@@ -16,7 +17,14 @@ Displays a rendered Blockchain Certificate
         background-color: red;
       }
     </style>
-    
+    <iron-ajax
+      auto
+      url=[[href]]
+      handle-as="json"
+      on-response="handleResponse"
+      debounce-duration="300">
+    </iron-ajax>
+
     <img src="https://media.giphy.com/media/7ju6mxgTagFna/giphy.gif" />
     <span class="recipient">R: [[recipient]]</span>
     <span class="title">T: [[title]]</span>
@@ -32,7 +40,7 @@ Displays a rendered Blockchain Certificate
         href: {
           type: String,
           value: 'blockchain-certificate',
-          observer: '_hrefChanged'
+          // observer: '_hrefChanged'
         },
 
         /* read-only properties */
@@ -49,12 +57,21 @@ Displays a rendered Blockchain Certificate
           readOnly: true
         }
       },
-      _hrefChanged: function(newValue, oldValue) {
-        // TODO: Get data from XMLHTTPRequest
-        this._setRecipient('Chris Downie');
-        this._setTitle('The best');
-        this._setSubtitle('At Everything');
-      },
+      // ready: function(newValue, b, c, d) {
+      // // _hrefChanged: function(newValue, oldValue) {
+      //   // TODO: Get data from XMLHTTPRequest
+      //   this.$.xhr.send({
+      //     url: this.href,
+      //   }).then(function(result, b, c, d) {
+      //     console.log(result, b, c, d)
+      //     this._setRecipient('Chris Downie');
+      //     this._setTitle('The best');
+      //     this._setSubtitle('At Everything');
+      //   })
+      // },
+      handleResponse: function(response) {
+        console.log(response)
+      }
 
     });
   </script>
