@@ -22,13 +22,17 @@ Displays a rendered Blockchain Certificate
       url=[[href]]
       handle-as="json"
       on-response="handleResponse"
+      on-error="handleError"
       debounce-duration="300">
     </iron-ajax>
+
 
     <img src="https://media.giphy.com/media/7ju6mxgTagFna/giphy.gif" />
     <span class="recipient">R: [[recipient]]</span>
     <span class="title">T: [[title]]</span>
     <span class="subtitle">S: [[subtitle]]</span>
+
+    <div class="error">[[error]]</div>
   </template>
 
   <script>
@@ -55,6 +59,11 @@ Displays a rendered Blockchain Certificate
         subtitle: {
           type: String,
           readOnly: true
+        },
+
+        error: {
+          type: String,
+          readOnly: true
         }
       },
       // ready: function(newValue, b, c, d) {
@@ -70,9 +79,12 @@ Displays a rendered Blockchain Certificate
       //   })
       // },
       handleResponse: function(response) {
-        console.log(response)
+        console.log('handleResponse', response)
+      },
+      handleError: function(error) {
+        console.log('handleError', error);
+        this._setError('Failed to fetch certificate at URL.');
       }
-
     });
   </script>
 </dom-module>
