@@ -25,15 +25,19 @@ Displays a rendered Blockchain Certificate
       on-error="handleError"
       debounce-duration="300">
     </iron-ajax>
-    <h1>[[status]]</h1>
-
-
-    <img src=[[certificateImage]]/>
-    <div class="recipient">[[recipient]]</div>
-    <div class="title">[[title]]</div>
-    <div class="subtitle">[[subtitle]]</div>
-
-    <div class="error">[[error]]</div>
+    <template is="dom-if" if=[[isLoading]]>
+      <h1>Loading...</h1>
+    </template>
+    <template is="dom-if" if=[[isErrored]]>
+      <h1>[[status]]</h1>
+      <a href=[[href]]>View Certificate</a>
+    </template>
+    <template is="dom-if" if=[[hasCertificateData]]>
+      <img src=[[certificateImage]]/>
+      <div class="recipient">[[recipient]]</div>
+      <div class="title">[[title]]</div>
+      <div class="subtitle">[[subtitle]]</div>
+    </template>
   </template>
 
   <script>
@@ -48,7 +52,30 @@ Displays a rendered Blockchain Certificate
           // observer: '_hrefChanged'
         },
 
-        /* read-only properties */
+        /* Loading/parsing state properties */
+        isLoading: {
+          type: Boolean,
+          value: true,
+          readOnly: true
+        },
+        isErrored: {
+          type: Boolean,
+          value: false,
+          readOnly: true
+        },
+        hasCertificateData: {
+          type: Boolean,
+          value: false,
+          readOnly: true
+        },
+
+        /* Display properties for errored state */
+        status: {
+          type: String,
+          readOnly: true
+        },
+
+        /* Display properties for successful "hasCertificateData" state */
         certificateImage: {
           type: String,
           readOnly: true
@@ -64,11 +91,6 @@ Displays a rendered Blockchain Certificate
         subtitle: {
           type: String,
           readOnly: true
-        },
-
-        status: {
-          type: String,
-          readOnly: true
         }
       },
       handleResponse: function(event) {
@@ -82,13 +104,19 @@ Displays a rendered Blockchain Certificate
           subtitle = subtitle.display ? subtitle.content : ""
         }
 
+        this._setIsLoading(false);
+        this._setHasCertificateData(true);
+
         this._setCertificateImage(certificateImage);
         this._setRecipient(name);
         this._setTitle(title);
         this._setSubtitle(subtitle);
       },
       handleError: function() {
-        this._setError('Failed to load certificate at URL.');
+        this._setIsLoading(false);
+        this._setHasCertificateData(false);
+        this._setIsErrored(true);
+        this._setStatus('Failed to load certificate at URL.');
       }
     });
   </script>
