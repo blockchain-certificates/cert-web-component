@@ -12,9 +12,9 @@ Displays a rendered Blockchain Certificate
   <template>
     <style>
       :host {
-        display: block;
         border: 1px solid #111111;
-        background-color: red;
+        box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
+        display: block;
       }
     </style>
     <iron-ajax
@@ -25,12 +25,13 @@ Displays a rendered Blockchain Certificate
       on-error="handleError"
       debounce-duration="300">
     </iron-ajax>
+    <h1>[[status]]</h1>
 
 
-    <img src="https://media.giphy.com/media/7ju6mxgTagFna/giphy.gif" />
-    <span class="recipient">R: [[recipient]]</span>
-    <span class="title">T: [[title]]</span>
-    <span class="subtitle">S: [[subtitle]]</span>
+    <img src=[[certificateImage]]/>
+    <div class="recipient">[[recipient]]</div>
+    <div class="title">[[title]]</div>
+    <div class="subtitle">[[subtitle]]</div>
 
     <div class="error">[[error]]</div>
   </template>
@@ -48,6 +49,10 @@ Displays a rendered Blockchain Certificate
         },
 
         /* read-only properties */
+        certificateImage: {
+          type: String,
+          readOnly: true
+        },
         recipient: {
           type: String,
           readOnly: true
@@ -61,29 +66,29 @@ Displays a rendered Blockchain Certificate
           readOnly: true
         },
 
-        error: {
+        status: {
           type: String,
           readOnly: true
         }
       },
-      // ready: function(newValue, b, c, d) {
-      // // _hrefChanged: function(newValue, oldValue) {
-      //   // TODO: Get data from XMLHTTPRequest
-      //   this.$.xhr.send({
-      //     url: this.href,
-      //   }).then(function(result, b, c, d) {
-      //     console.log(result, b, c, d)
-      //     this._setRecipient('Chris Downie');
-      //     this._setTitle('The best');
-      //     this._setSubtitle('At Everything');
-      //   })
-      // },
-      handleResponse: function(response) {
-        console.log('handleResponse', response)
+      handleResponse: function(event) {
+        // TODO: Make this robust to bad formats
+        const response = event && event.detail && event.detail.response;
+        const certificateImage = response.certificate.image;
+        const name = `${response.recipient.givenName} ${response.recipient.familyName}`;
+        const title = response.certificate.title;
+        let subtitle = response.certificate.subtitle;
+        if (typeof subtitle == "object") {
+          subtitle = subtitle.display ? subtitle.content : ""
+        }
+
+        this._setCertificateImage(certificateImage);
+        this._setRecipient(name);
+        this._setTitle(title);
+        this._setSubtitle(subtitle);
       },
-      handleError: function(error) {
-        console.log('handleError', error);
-        this._setError('Failed to fetch certificate at URL.');
+      handleError: function() {
+        this._setError('Failed to load certificate at URL.');
       }
     });
   </script>
