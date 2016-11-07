@@ -1,0 +1,77 @@
+<dom-module id="common-styles">
+  <template>
+    <style>
+      :host {
+        --divider-color: #edf1f4;
+        --max-top-image-dimension: 125px;
+        --max-bottom-image-dimension: 150px;
+        --section-spacer-distance: 20px;
+
+        box-shadow: 0px 5px 10px rgba(0,0,0,0.25);
+        display: block;
+        font-family: serif;
+        padding: calc(var(--section-spacer-distance) * 2) 20px;
+        text-align: center;
+      }
+      /* Image at the top of the document. */
+      :host .certificate-image img {
+        max-width: var(--max-top-image-dimension);
+        max-height: var(--max-top-image-dimension);
+      }
+
+      /* Headers section */
+      :host .headers::before,
+      :host .headers::after {
+        content: ' ';
+        display: block;
+        background-color: var(--divider-color);
+        width: 30%;
+        height: 1px;
+        text-align: center;
+        margin: var(--section-spacer-distance) auto;
+      }
+      :host .headers h1,
+      :host .headers h2,
+      :host .headers h3 {
+        font-weight: normal;
+        margin-top: 0px;
+        margin-bottom: 0px;
+      }
+      :host .headers h1 {
+        font-size: 30px;
+      }
+      :host .headers h2 {
+        font-size: 24px;
+        margin-top: calc(var(--section-spacer-distance) / 2);
+      }
+      :host .headers h3 {
+        font-size: 16px;
+        font-style: italic;
+        margin-top: calc(var(--section-spacer-distance) / 2);
+      }
+
+      /* Description section */
+      :host .description p {
+        font-style: italic;
+        margin-top: var(--section-spacer-distance);
+      }
+
+      /* Signatures section*/
+      :host .signatures {
+        margin-top: var(--section-spacer-distance);
+      }
+      :host .signatures img {
+        max-width: var(--max-bottom-image-dimension);
+      }
+
+      /* Image at the bottom of the document. */
+      :host .seal {
+        margin-top: var(--section-spacer-distance);
+      }
+      :host .seal img {
+        max-width: var(--max-bottom-image-dimension);
+        max-height: var(--max-bottom-image-dimension);
+      }
+    </style>
+  </template>
+</dom-module>

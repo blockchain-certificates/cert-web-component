@@ -1,5 +1,6 @@
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="/components/polymer/polymer.html">
+<link rel="import" href="/components/iron-ajax/iron-ajax.html">
+<link rel="import" href="common-styles.html">
 
 <!--
 `blockchain-certificate`
@@ -10,13 +11,8 @@ Displays a rendered Blockchain Certificate
 
 <dom-module id="blockchain-certificate">
   <template>
-    <style>
-      :host {
-        border: 1px solid #111111;
-        box-shadow: 0px 5px 15px rgba(0,0,0,0.3);
-        display: block;
-      }
-    </style>
+    <style include="common-styles"></style>
+
     <iron-ajax
       auto
       url=[[href]]
@@ -26,6 +22,8 @@ Displays a rendered Blockchain Certificate
       on-error="handleError"
       debounce-duration="300">
     </iron-ajax>
+
+
     <template is="dom-if" if=[[isLoading]]>
       <h1>Loading...</h1>
     </template>
@@ -34,10 +32,21 @@ Displays a rendered Blockchain Certificate
       <a href=[[href]]>View Certificate</a>
     </template>
     <template is="dom-if" if=[[hasCertificateData]]>
-      <img src=[[certificateImage]] />
-      <div class="recipient">[[recipient]]</div>
-      <div class="title">[[title]]</div>
-      <div class="subtitle">[[subtitle]]</div>
+      <section class="certificate-image"><img src=[[certificateImage]] /></section>
+      <section class="headers">
+        <h1 class="recipient">[[recipient]]</h1>
+        <h2 class="title">[[title]]</h2>
+        <h3 class="subtitle">[[subtitle]]</h3>
+      </section>
+      <section class="description">
+        <p>[[description]]</p>
+      </section>
+      <section class="signatures">
+        <img src=[[signatureImage]] />
+      </section>
+      <section class="seal">
+        <img src=[[sealImage]] />
+      </section>
     </template>
   </template>
 
@@ -92,26 +101,54 @@ Displays a rendered Blockchain Certificate
         subtitle: {
           type: String,
           readOnly: true
+        },
+        description: {
+          type: String,
+          readOnly: true
+        },
+        signatureImage: {
+          type: String,
+          readOnly: true
+        },
+        sealImage: {
+          type: String,
+          readOnly: true
         }
       },
       handleResponse: function(event) {
-        // TODO: Make this robust to bad formats
-        const response = event && event.detail && event.detail.response;
-        const certificateImage = response.certificate.image;
-        const name = `${response.recipient.givenName} ${response.recipient.familyName}`;
-        const title = response.certificate.title;
-        let subtitle = response.certificate.subtitle;
-        if (typeof subtitle == "object") {
-          subtitle = subtitle.display ? subtitle.content : ""
+        try {
+          const response = event && event.detail && event.detail.response;
+          const certificate = response.certificate || response.document.certificate
+          const recipient = response.recipient || response.document.recipient
+          const certificateImage = certificate.image;
+          const name = `${recipient.givenName} ${recipient.familyName}`;
+          const title = certificate.title || certificate.name;
+          const description = certificate.description
+          const signatureImage = response.document
+            && response.document.assertion
+            && response.document.assertion["image:signature"];
+          const sealImage = certificate.issuer.image
+          let subtitle = certificate.subtitle;
+          if (typeof subtitle == "object") {
+            subtitle = subtitle.display ? subtitle.content : ""
+          }
+
+          this._setHasCertificateData(true);
+          this._setCertificateImage(certificateImage);
+          this._setRecipient(name);
+          this._setTitle(title);
+          this._setSubtitle(subtitle);
+          this._setDescription(description);
+          this._setSignatureImage(signatureImage);
+          this._setSealImage(sealImage);
+        } catch (e) {
+          this._setIsLoading(false);
+          this._setHasCertificateData(false);
+          this._setIsErrored(true);
+          this._setStatus("Referenced certificate doesn't appear to be valid.");
+        } finally {
+          this._setIsLoading(false);
         }
-
-        this._setIsLoading(false);
-        this._setHasCertificateData(true);
-
-        this._setCertificateImage(certificateImage);
-        this._setRecipient(name);
-        this._setTitle(title);
-        this._setSubtitle(subtitle);
       },
       handleError: function() {
         this._setIsLoading(false);
