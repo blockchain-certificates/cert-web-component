@@ -21,18 +21,18 @@ bower install blockchain-certificate --save
 At that point, you'll just need to do a few simple things to see the certificate render.
 
 1. (Optional) Include a polyfill for web components, to add support for older browsers.
-    ```
+```
     <script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/0.7.22/webcomponents.min.js">
-    ```
+```
 2. Import the web-component in the header of your html.
-    ```
+```
     <link rel="import" href="../blockchain-certificate.html">
-    ```
+```
 3. Add the \<blockchain-certificate\> element and specify the href attribute to the certificate you need to render.
-    ```
+```
     <blockchain-certificate href="./path/to/your/certificate.json">
     </blockchain-certificate
-    ```
+```
 
 For more detailed documentation on the attributes & a demo, use `polymer serve` below and go to [http://localhost:8080/components/blockchain-certificate/](http://localhost:8080/components/blockchain-certificate/) in order to see polymer's generated docs/demo web application.
 
