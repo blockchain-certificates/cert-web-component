@@ -1,4 +1,5 @@
 'use strict';
+
 let Status = {
   computingLocalHash: "computingLocalHash",
   fetchingRemoteHash: "fetchingRemoteHash",
@@ -17,7 +18,22 @@ class CertificateValidator {
     this.statusCallback = statusCallback;
   }
   validate() {
-    this._certificateState = {}
+    this._validationState = {};
+    let certificate
+    try {
+      certificate = JSON.parse(this.certificateString);
+      this._validationState.certificate = certificate;
+    } catch (e) {
+      this._failed("Certificate wasn't valid JSON data.");
+      return
+    }
+
+    if (typeof certificate.receipt === "undefined") {
+      this._validationState.certificateVersion = "1.1"
+    } else {
+      this._validationState.certificateVersion = "1.2"
+    }
+
     this._computeLocalHash()
     // 1. compute local hash
     //    for v1.2 certs, this involves getting it json-ld normalized
@@ -32,13 +48,20 @@ class CertificateValidator {
 
     // 1.2 certificates
     // 4. check merkle root
-    // 5. check reciept
+    // 5. check receipt
     // 6. check issuer signature. See 1.1 #4
 
   }
   _computeLocalHash() {
     this.statusCallback(Status.computingLocalHash)
 
+debugger;
+    if (this._validationState.certificateVersion === "1.1") {
+      this._validationState.localHash = sha256(this.certificateString)
+    } else {
+      // json-ld normalize, then sha256
+
+    }
     this._fetchRemoteHash()
   }
   _fetchRemoteHash() {
@@ -49,11 +72,10 @@ class CertificateValidator {
   _compareHashes() {
     this.statusCallback(Status.comparingHashes)
 
-    let isVersionDotTwo = true;
-    if (isVersionDotTwo) {
-      this._checkMerkleRoot()
-    } else {
+    if (this._validationState.certificateVersion === "1.1") {
       this._checkIssuerSignature()
+    } else {
+      this._checkMerkleRoot()
     }
   }
   _checkMerkleRoot() {

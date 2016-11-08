@@ -3,7 +3,8 @@
   "description": "Displays a rendered Blockchain Certificate",
   "main": "blockchain-certificate.html",
   "dependencies": {
-    "polymer": "Polymer/polymer#^1.4.0"
+    "polymer": "Polymer/polymer#^1.4.0",
+    "js-sha256": "^0.3.2"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
