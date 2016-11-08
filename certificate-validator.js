@@ -105,12 +105,12 @@ class CertificateValidator {
   _checkRevokedStatus() {
     this.statusCallback(Status.checkingRevokedStatus)
 
-    this._succeed()
+    this._failed("Proper certificate validation isn't implemented yet.");
   }
   _succeed() {
     this.statusCallback(Status.success)
   }
   _failed(reason) {
-    this.statusCallback(success.failure, reason)
+    this.statusCallback(Status.failure, reason)
   }
 }
