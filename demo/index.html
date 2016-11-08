@@ -10,12 +10,14 @@
     <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
 
     <link rel="import" href="../blockchain-certificate.html">
+    <link rel="import" href="../validate-certificate.html">
 
     <style is="custom-style" include="demo-pages-shared-styles">
     </style>
   </head>
   <body>
 
+    <h2>The &lt;blockchain-certificate&gt; element</h2>
     <div class="vertical-section-container centered">
       <h3>Basic blockchain-certificate demo - locally hosted file</h3>
       <p>Here's how you can render a locally hosted certificate file.</p>
@@ -39,5 +41,17 @@
       </demo-snippet>
     </div>
 
+    <h2>The &lt;validate-certificate&gt; element</h2>
+    <div class="vertical-section-container centered">
+      <h3>Basic validate-certificate demo - locally hosted file</h3>
+      <p>Here's how you can render a locally hosted certificate file.</p>
+      <demo-snippet>
+        <template>
+          <validate-certificate>
+            <blockchain-certificate href="./sample_signed_cert-valid-1.2.0.json"></blockchain-certificate>
+          </validate-certificate>
+        </template>
+      </demo-snippet>
+    </div>
   </body>
 </html>

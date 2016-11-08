@@ -1,0 +1,30 @@
+<link rel="import" href="/components/polymer/polymer.html">
+<link rel="import" href="/components/iron-ajax/iron-ajax.html">
+
+<!--
+`validate-certificate`
+With a <blockchain-certificate> child, presents a "validate" button which validates the certificate.
+
+@demo demo/index.html
+-->
+
+<dom-module id="validate-certificate">
+  <template>
+    <style>
+    </style>
+    <content></content>
+    <button on-tap="validate">Validate</button>
+  </template>
+  <script>
+    Polymer({
+
+      is: 'validate-certificate',
+
+      properties: {
+      },
+      validate() {
+        console.log("validate called");
+      }
+    });
+  </script>
+</dom-module>
