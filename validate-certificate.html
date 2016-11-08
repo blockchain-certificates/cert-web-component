@@ -12,7 +12,8 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
   <template>
     <style>
     </style>
-    <content></content>
+    <content id="content"></content>
+    <p>[[_status]]</p>
     <button on-tap="validate">Validate</button>
   </template>
   <script src="./certificate-validator.js" charset="utf-8"></script>
@@ -22,10 +23,32 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
       is: 'validate-certificate',
 
       properties: {
+        _status: {
+          readOnly: true,
+          type: String,
+          value: "",
+        }
       },
-      
+
       validate() {
-        let validator = new CertificateValidator("", (result) => {
+        const certificateNode = this.queryEffectiveChildren('blockchain-certificate')
+
+        if (certificateNode.isLoading) {
+          this._set_status("Can't validate a certificate while it's loading. Try again after it loads.")
+          return
+        }
+        if (certificateNode.isErrored) {
+          this._set_status("That certificate didn't load correctly, so it can't be validated.")
+          return
+        }
+        const dataString = certificateNode.certificateData || ""
+        if (!certificateNode.hasCertificateData || dataString.length == 0) {
+          this._set_status("Can't validate a certificate that doesn't have any data. Sorry.")
+          return
+        }
+
+
+        const validator = new CertificateValidator(dataString, (result) => {
           console.log(`result is ${result}`);
         })
         validator.validate()
