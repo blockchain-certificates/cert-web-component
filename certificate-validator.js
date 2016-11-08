@@ -55,14 +55,23 @@ class CertificateValidator {
   _computeLocalHash() {
     this.statusCallback(Status.computingLocalHash)
 
-debugger;
     if (this._validationState.certificateVersion === "1.1") {
       this._validationState.localHash = sha256(this.certificateString)
+      this._fetchRemoteHash()
     } else {
-      // json-ld normalize, then sha256
-
+      jsonld.normalize(this._validationState.certificate, {
+        algorithm: 'URDNA2015',
+        format: 'application/nquads'
+      }, (err, normalized) => {
+        if (!!err) {
+          this._failed(`Failed JSON-LD normalization with error: ${err}`)
+        } else {
+          this._validationState.localHash = sha256(normalized)
+          this._fetchRemoteHash()
+        }
+      });
     }
-    this._fetchRemoteHash()
+
   }
   _fetchRemoteHash() {
     this.statusCallback(Status.fetchingRemoteHash)
