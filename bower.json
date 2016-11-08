@@ -4,7 +4,8 @@
   "main": "blockchain-certificate.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^1.4.0",
-    "js-sha256": "^0.3.2"
+    "js-sha256": "^0.3.2",
+    "jsonld": "^0.4.11"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
