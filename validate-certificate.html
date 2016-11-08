@@ -47,11 +47,46 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
           return
         }
 
-
-        const validator = new CertificateValidator(dataString, (result) => {
-          console.log(`result is ${result}`);
+        // Okay, now start up a new validator & let's see what we get.
+        const validator = new CertificateValidator(dataString, (status, message) => {
+          this._updateStatus(status, message);
         })
         validator.validate()
+      },
+
+      _updateStatus(status, message) {
+        let statusString = ""
+        switch (status) {
+          case Status.computingLocalHash:
+            statusString = "Computing local hash..."
+            break;
+          case Status.fetchingRemoteHash:
+            statusString = "Fetching remote hash..."
+            break;
+          case Status.comparingHashes:
+            statusString = "Comparing local and remote hashes..."
+            break;
+          case Status.checkingMerkleRoot:
+            statusString = "Checking merkle root..."
+            break;
+          case Status.checkingReceipt:
+            statusString = "Checking the receipt..."
+            break;
+          case Status.checkingIssuerSignature:
+            statusString = "Checking the issuer's signature..."
+            break;
+          case Status.checkingRevokedStatus:
+            statusString = "Checking if the certificate has been revoked..."
+            break;
+          case Status.success:
+            statusString = "This is a valid certificate!"
+            break;
+          case Status.failure:
+            statusString = `Not a valid certificate. ${message}`
+            break;
+        }
+        console.log(statusString);
+        this._set_status(statusString);
       }
     });
   </script>

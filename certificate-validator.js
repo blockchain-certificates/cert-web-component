@@ -49,7 +49,7 @@ class CertificateValidator {
   _compareHashes() {
     this.statusCallback(Status.comparingHashes)
 
-    let isVersionDotTwo = true
+    let isVersionDotTwo = true;
     if (isVersionDotTwo) {
       this._checkMerkleRoot()
     } else {
