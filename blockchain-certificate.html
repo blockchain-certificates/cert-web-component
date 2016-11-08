@@ -34,18 +34,18 @@ Displays a rendered Blockchain Certificate
     <template is="dom-if" if=[[hasCertificateData]]>
       <section class="certificate-image"><img src=[[_certificateImage]] /></section>
       <section class="headers">
-        <h1 class="recipient">[[recipient]]</h1>
-        <h2 class="title">[[title]]</h2>
-        <h3 class="subtitle">[[subtitle]]</h3>
+        <h1 class="recipient">[[_recipient]]</h1>
+        <h2 class="title">[[_title]]</h2>
+        <h3 class="subtitle">[[_subtitle]]</h3>
       </section>
       <section class="description">
-        <p>[[description]]</p>
+        <p>[[_description]]</p>
       </section>
       <section class="signatures">
-        <img src=[[signatureImage]] />
+        <img src=[[_signatureImage]] />
       </section>
       <section class="seal">
-        <img src=[[sealImage]] />
+        <img src=[[_sealImage]] />
       </section>
     </template>
   </template>
@@ -90,6 +90,9 @@ Displays a rendered Blockchain Certificate
           readOnly: true
         },
 
+        //
+        // Private properties
+        //
         /* Image attached to the certificate object. */
         _certificateImage: {
           type: String,
@@ -97,37 +100,37 @@ Displays a rendered Blockchain Certificate
         },
 
         /* The first & last name of the recipient */
-        recipient: {
+        _recipient: {
           type: String,
           readOnly: true
         },
 
         /* Title on the certificate */
-        title: {
+        _title: {
           type: String,
           readOnly: true
         },
 
         /* Subtitle on the certificate */
-        subtitle: {
+        _subtitle: {
           type: String,
           readOnly: true
         },
 
         /* Description on the certificate */
-        description: {
+        _description: {
           type: String,
           readOnly: true
         },
 
         /* Image on the assertion. Typically, this is a picture of a signature. */
-        signatureImage: {
+        _signatureImage: {
           type: String,
           readOnly: true
         },
 
         /* Image of the issuing institution. Typically, this is the official seal of the issuing institution. */
-        sealImage: {
+        _sealImage: {
           type: String,
           readOnly: true
         }
@@ -152,12 +155,12 @@ Displays a rendered Blockchain Certificate
 
           this._setHasCertificateData(true);
           this._set_certificateImage(certificateImage);
-          this._setRecipient(name);
-          this._setTitle(title);
-          this._setSubtitle(subtitle);
-          this._setDescription(description);
-          this._setSignatureImage(signatureImage);
-          this._setSealImage(sealImage);
+          this._set_recipient(name);
+          this._set_title(title);
+          this._set_subtitle(subtitle);
+          this._set_description(description);
+          this._set_signatureImage(signatureImage);
+          this._set_sealImage(sealImage);
         } catch (e) {
           this._setIsLoading(false);
           this._setHasCertificateData(false);
