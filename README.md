@@ -7,9 +7,9 @@ This is the easiest way to show a blockchain certificate. Follow the installatio
 </blockchain-certificate
 ```
 
-With a valid certificate, you'll get something that follows our community rendering guidelines with minimal effort! It will look something like:
+With a valid certificate, you'll get something that follows our [community rendering guidelines](http://www.blockcerts.org/guide/display-guidelines.html) with minimal effort! It will look something like:
 
-[ prerendered image]
+![prerendered demo](https://github.com/blockchain-certificates/cert-web-component/blob/master/demo/prerendered-demo.png)
 
 # Using \<blockchain-certificate\>
 You can use bower to install this web component.
@@ -33,6 +33,8 @@ At that point, you'll just need to do a few simple things to see the certificate
     <blockchain-certificate href="./path/to/your/certificate.json">
     </blockchain-certificate
     ```
+
+For more detailed documentation on the attributes & a demo, use `polymer serve` below and go to [http://localhost:8080/components/blockchain-certificate/](http://localhost:8080/components/blockchain-certificate/) in order to see polymer's generated docs/demo web application.
 
 # Development
 ## Install the Polymer-CLI
