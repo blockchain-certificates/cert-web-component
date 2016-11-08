@@ -16,7 +16,7 @@ Displays a rendered Blockchain Certificate
     <iron-ajax
       auto
       url=[[href]]
-      handle-as="json"
+      handle-as="text"
       params='{"format":"json"}'
       on-response="_handleResponse"
       on-error="_handleError"
@@ -84,6 +84,12 @@ Displays a rendered Blockchain Certificate
           readOnly: true
         },
 
+        /* The contents of the certificate at the specified href. */
+        certificateData: {
+          type: String,
+          readOnly: true
+        },
+
         /* A short explanation of the status of the web component */
         _status: {
           type: String,
@@ -137,7 +143,11 @@ Displays a rendered Blockchain Certificate
       },
       _handleResponse: function(event) {
         try {
-          const response = event && event.detail && event.detail.response;
+          // We need to save the string response, because older validation methods require us to validate the unchanged file.
+          const stringResponse = event && event.detail && event.detail.response;
+          this._setCertificateData(stringResponse);
+
+          const response = JSON.parse(stringResponse);
           const certificate = response.certificate || response.document.certificate
           const recipient = response.recipient || response.document.recipient
           const certificateImage = certificate.image;
