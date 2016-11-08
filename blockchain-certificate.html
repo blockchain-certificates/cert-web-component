@@ -32,7 +32,7 @@ Displays a rendered Blockchain Certificate
       <a href=[[href]]>View Certificate</a>
     </template>
     <template is="dom-if" if=[[hasCertificateData]]>
-      <section class="certificate-image"><img src=[[certificateImage]] /></section>
+      <section class="certificate-image"><img src=[[_certificateImage]] /></section>
       <section class="headers">
         <h1 class="recipient">[[recipient]]</h1>
         <h2 class="title">[[title]]</h2>
@@ -56,23 +56,28 @@ Displays a rendered Blockchain Certificate
       is: 'blockchain-certificate',
 
       properties: {
+        /* The URL of the certificate you wish to display. */
         href: {
           type: String,
           value: 'blockchain-certificate',
           // observer: '_hrefChanged'
         },
 
-        /* Loading/parsing state properties */
+        /* True while we're loading the certificate at the given href. */
         isLoading: {
           type: Boolean,
           value: true,
           readOnly: true
         },
+
+        /* True if we've encountered an error trying to download or parse the certificate at the given href. */
         isErrored: {
           type: Boolean,
           value: false,
           readOnly: true
         },
+
+        /* True if we've successfully loaded & parsed certificate data from the given href. False otherwise. */
         hasCertificateData: {
           type: Boolean,
           value: false,
@@ -85,31 +90,43 @@ Displays a rendered Blockchain Certificate
           readOnly: true
         },
 
-        /* Display properties for successful "hasCertificateData" state */
-        certificateImage: {
+        /* Image attached to the certificate object. */
+        _certificateImage: {
           type: String,
           readOnly: true
         },
+
+        /* The first & last name of the recipient */
         recipient: {
           type: String,
           readOnly: true
         },
+
+        /* Title on the certificate */
         title: {
           type: String,
           readOnly: true
         },
+
+        /* Subtitle on the certificate */
         subtitle: {
           type: String,
           readOnly: true
         },
+
+        /* Description on the certificate */
         description: {
           type: String,
           readOnly: true
         },
+
+        /* Image on the assertion. Typically, this is a picture of a signature. */
         signatureImage: {
           type: String,
           readOnly: true
         },
+
+        /* Image of the issuing institution. Typically, this is the official seal of the issuing institution. */
         sealImage: {
           type: String,
           readOnly: true
@@ -134,7 +151,7 @@ Displays a rendered Blockchain Certificate
           }
 
           this._setHasCertificateData(true);
-          this._setCertificateImage(certificateImage);
+          this._set_certificateImage(certificateImage);
           this._setRecipient(name);
           this._setTitle(title);
           this._setSubtitle(subtitle);
