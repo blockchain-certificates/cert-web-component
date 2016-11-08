@@ -28,7 +28,7 @@ Displays a rendered Blockchain Certificate
       <h1>Loading...</h1>
     </template>
     <template is="dom-if" if=[[isErrored]]>
-      <h1>[[status]]</h1>
+      <h1>[[_status]]</h1>
       <a href=[[href]]>View Certificate</a>
     </template>
     <template is="dom-if" if=[[hasCertificateData]]>
@@ -84,8 +84,8 @@ Displays a rendered Blockchain Certificate
           readOnly: true
         },
 
-        /* Display properties for errored state */
-        status: {
+        /* A short explanation of the status of the web component */
+        _status: {
           type: String,
           readOnly: true
         },
@@ -165,7 +165,7 @@ Displays a rendered Blockchain Certificate
           this._setIsLoading(false);
           this._setHasCertificateData(false);
           this._setIsErrored(true);
-          this._setStatus("Referenced certificate doesn't appear to be valid.");
+          this._set_status("Referenced certificate doesn't appear to be valid.");
         } finally {
           this._setIsLoading(false);
         }
@@ -174,7 +174,7 @@ Displays a rendered Blockchain Certificate
         this._setIsLoading(false);
         this._setHasCertificateData(false);
         this._setIsErrored(true);
-        this._setStatus('Failed to load certificate at URL.');
+        this._set_status('Failed to load certificate at URL.');
       }
     });
   </script>
