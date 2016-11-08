@@ -18,8 +18,8 @@ Displays a rendered Blockchain Certificate
       url=[[href]]
       handle-as="json"
       params='{"format":"json"}'
-      on-response="handleResponse"
-      on-error="handleError"
+      on-response="_handleResponse"
+      on-error="_handleError"
       debounce-duration="300">
     </iron-ajax>
 
@@ -135,7 +135,7 @@ Displays a rendered Blockchain Certificate
           readOnly: true
         }
       },
-      handleResponse: function(event) {
+      _handleResponse: function(event) {
         try {
           const response = event && event.detail && event.detail.response;
           const certificate = response.certificate || response.document.certificate
@@ -170,7 +170,7 @@ Displays a rendered Blockchain Certificate
           this._setIsLoading(false);
         }
       },
-      handleError: function() {
+      _handleError: function() {
         this._setIsLoading(false);
         this._setHasCertificateData(false);
         this._setIsErrored(true);
