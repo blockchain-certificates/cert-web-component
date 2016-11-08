@@ -15,6 +15,7 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
     <content></content>
     <button on-tap="validate">Validate</button>
   </template>
+  <script src="./certificate-validator.js" charset="utf-8"></script>
   <script>
     Polymer({
 
@@ -22,8 +23,12 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
 
       properties: {
       },
+      
       validate() {
-        console.log("validate called");
+        let validator = new CertificateValidator("", (result) => {
+          console.log(`result is ${result}`);
+        })
+        validator.validate()
       }
     });
   </script>
