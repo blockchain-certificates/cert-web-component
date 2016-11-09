@@ -104,7 +104,7 @@ class CertificateValidator {
           return;
         }
 
-        this._validationState.opReturnScript = opReturnScript
+        this._validationState.remoteHash = opReturnScript
         this._validationState.revokedAddresses = revokedAddresses
       } catch (e) {
         this._failed('Unable to parse JSON out of remote transaction data.')
@@ -121,6 +121,23 @@ class CertificateValidator {
   }
   _compareHashes() {
     this.statusCallback(Status.comparingHashes)
+    let compareToHash = ""
+
+    if (this._validationState.certificateVersion === "1.1") {
+      const prefix = "6a20"
+      let remoteHash = this._validationState.remoteHash
+      if (remoteHash.startsWith(prefix)) {
+        remoteHash = remoteHash.slice(prefix.length)
+      }
+      compareToHash = remoteHash
+    } else {
+      compareToHash = self._validationState.certificate.receipt.targetHash
+    }
+
+    if (this._validationState.localHash !== compareToHash) {
+      this._failed(`Local hash (${this._validationState.localHash}) does not match remote hash (${compareToHash})`);
+      return;
+    }
 
     if (this._validationState.certificateVersion === "1.1") {
       this._checkIssuerSignature()
@@ -141,12 +158,61 @@ class CertificateValidator {
   _checkIssuerSignature() {
     this.statusCallback(Status.checkingIssuerSignature)
 
-    this._checkRevokedStatus()
+    const issuerURL = this._validationState.certificate.issuer.id;
+    let request = new XMLHttpRequest();
+    request.addEventListener('load', (event) => {
+      if (event.target.status !== 200) {
+        this._failed(`Got ${event.target.status} response when trying to get remote transaction data.`)
+        return;
+      }
+      try {
+        const responseData = JSON.parse(event.target.responseText);
+        const issuerKeys = responseData.issuerKeys || [];
+        const revocationKeys = responseData.revocationKeys || [];
+
+        let issuerKey = issuerKeys[0].key;
+        let revokeKey = revocationKeys[0].key;
+
+        this._validationState.revocationKey = revokeKey
+
+        // TODO: Figure this part out
+        let address = "BOOOOOO"
+        if (address != issuerKey) {
+          this._failed(`Issuer key doesn't match derived address. Address: ${address}, Issuer Key: ${issuerKey}`);
+          return;
+        }
+      } catch (e) {
+        this._failed('Unable to parse JSON out of issuer signature data.')
+        return;
+      }
+
+      this._checkRevokedStatus();
+    });
+    request.addEventListener('error', (event) => {
+      this._failed("Error requesting issuer signature.")
+    })
+    request.open('GET', issuerURL);
+    request.start();
   }
   _checkRevokedStatus() {
     this.statusCallback(Status.checkingRevokedStatus)
 
-    this._failed("Proper certificate validation isn't implemented yet.");
+    const revokedAddresses = this._validationState.revokedAddresses;
+    let revocationKey = this._validationState.revocationKey;
+    const isRevokedByIssuer = (-1 != revokedAddresses.findIndex((address) => address === revocationKey))
+    if (isRevokedByIssuer) {
+      this._failed('This certificate has been revoked by the issuer.')
+      return;
+    }
+
+    revocationKey = this._validationState.certificate.recipient.revocationKey
+    const isRevokedByRecipient = (-1 != revokedAddresses.findIndex((address) => address === revocationKey))
+    if (isRevokedByRecipient) {
+      this._failed('This certificate has been revoked by the recipient.');
+      return;
+    }
+
+    this._succeed();
   }
   _succeed() {
     this.statusCallback(Status.success)
