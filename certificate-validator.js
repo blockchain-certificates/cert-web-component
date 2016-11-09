@@ -71,12 +71,54 @@ class CertificateValidator {
         }
       });
     }
-
   }
   _fetchRemoteHash() {
-    this.statusCallback(Status.fetchingRemoteHash)
+    this.statusCallback(Status.fetchingRemoteHash);
+    debugger;
+    let transactionID;
+    try {
+      const receipt = this._validationState.certificate.receipt
+      transactionID = receipt.anchors[0].sourceId
+    } catch (e) {
+      transactionID = window.prompt("What's the transaction ID for this certificate?") || ""
+      transactionID.trim()
+    }
 
-    this._compareHashes()
+    let request = new XMLHttpRequest();
+    request.addEventListener('load', (event) => {
+      if (event.target.status !== 200) {
+        this._failed(`Got ${event.target.status} response when trying to get remote transaction data.`)
+        return;
+      }
+      try {
+        const responseData = JSON.parse(event.target.responseText)
+        let outputs = responseData.out
+        let lastOutput = outputs[outputs.length - 1]
+        const opReturnScript = lastOutput.script
+        const revokedAddresses = outputs
+          .filter((output) => !!output.spent)
+          .map((output) => output.addr)
+
+        this._validationState.opReturnScript = opReturnScript
+        this._validationState.revokedAddresses = revokedAddresses
+      } catch (e) {
+        this._failed('Unable to parse JSON out of remote transaction data.')
+        return;
+      }
+      console.log(event);
+      debugger;
+      this._compareHashes();
+    });
+    request.addEventListener('error', (event) => {
+      // TODO: This is a hack to enable further testing. Remove it.
+      this._compareHashes();
+      // This is what this should do
+      // this._failed("Error requesting remote transaction content.")
+    })
+    request.open('GET', `https://blockchain.info/rawtx/${transactionID}?cors=true`);
+    request.send();
+
+
   }
   _compareHashes() {
     this.statusCallback(Status.comparingHashes)
