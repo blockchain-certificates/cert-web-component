@@ -131,7 +131,7 @@ class CertificateValidator {
       }
       compareToHash = remoteHash
     } else {
-      compareToHash = self._validationState.certificate.receipt.targetHash
+      compareToHash = this._validationState.certificate.receipt.targetHash
     }
 
     if (this._validationState.localHash !== compareToHash) {
@@ -148,10 +148,46 @@ class CertificateValidator {
   _checkMerkleRoot() {
     this.statusCallback(Status.checkingMerkleRoot)
 
+    let merkleRoot = this._validationState.certificate.receipt.merkleRoot
+    let prefixedMerkleRoot = `6a20${merkleRoot}`
+
+    const remoteHash = this._validationState.remoteHash;
+    if (prefixedMerkleRoot !== remoteHash) {
+      this._failed(`MerkleRoot does nto match remote hash. MerkleRoot:${prefixedMerkleRoot}, hash: ${remoteHash}`)
+      return;
+    }
     this._checkReceipt()
   }
   _checkReceipt() {
     this.statusCallback(Status.checkingReceipt)
+
+    const receipt = this._validationState.certificate.reciept;
+    try {
+      let proof = receipt.proof;
+      let targetHash = reciept.targetHash;
+      let merkleRoot = reciept.merkleRoot;
+
+      let proofHash = targetHash;
+      for (node in proof) {
+        if (typeof node.left !== "undefined") {
+          let appendedBuffer = `${node.left}${proofHash}`;
+          proofHash = sha256(appendedBuffer)
+        } else if (typeof node.right !== "undefined") {
+          let appendedBuffer = `${proofHash}${node.right}`;
+          proofHash = sha256(appendedBuffer)
+        } else {
+          throw new Error("We should never get here.")
+        }
+      }
+    } catch (e) {
+      this._failed('The reciept is malformed. There was a problem navigating the merkle tree in the receipt.');
+      return;
+    }
+
+    if (proofHash !== merkleRoot) {
+      this._failed(`Invalid Merkle Receipt. Proof hash: ${proofHash}, Merkle Root: ${merkleRoot}`)
+      return;
+    }
 
     this._checkIssuerSignature()
   }
