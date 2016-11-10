@@ -68,7 +68,7 @@ class CertificateValidator {
           return;
         } else {
           const dataStream = this._toData(normalized);
-          this._validationState.localHash = sha3_256(dataStream);
+          this._validationState.localHash = sha256(dataStream);
           this._fetchRemoteHash();
         }
       });
