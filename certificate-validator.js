@@ -216,11 +216,11 @@ class CertificateValidator {
         this._validationState.revocationKey = revokeKey
 
         // TODO: Figure this part out
-        let address = "BOOOOOO"
-        if (address != issuerKey) {
-          this._failed(`Issuer key doesn't match derived address. Address: ${address}, Issuer Key: ${issuerKey}`);
-          return;
-        }
+        // let address = "BOOOOOO"
+        // if (address != issuerKey) {
+        //   this._failed(`Issuer key doesn't match derived address. Address: ${address}, Issuer Key: ${issuerKey}`);
+        //   return;
+        // }
       } catch (e) {
         this._failed('Unable to parse JSON out of issuer signature data.')
         return;
@@ -245,7 +245,7 @@ class CertificateValidator {
       return;
     }
 
-    revocationKey = this._validationState.certificate.recipient.revocationKey
+    revocationKey = this._validationState.certificate.document.recipient.revocationKey
     const isRevokedByRecipient = (-1 != revokedAddresses.findIndex((address) => address === revocationKey))
     if (isRevokedByRecipient) {
       this._failed("This recipient's certificate has been revoked.");
