@@ -168,16 +168,19 @@ class CertificateValidator {
     let merkleRoot = receipt.merkleRoot;
     try {
       let proof = receipt.proof;
-      for (let index in proof) {
-        const node = proof[index]
-        if (typeof node.left !== "undefined") {
-          let appendedBuffer = `${node.left}${proofHash}`;
-          proofHash = sha256(appendedBuffer)
-        } else if (typeof node.right !== "undefined") {
-          let appendedBuffer = `${proofHash}${node.right}`;
-          proofHash = sha256(appendedBuffer)
-        } else {
-          throw new Error("We should never get here.")
+      if (!!proof) {
+        for (let index in proof) {
+          const node = proof[index]
+          if (typeof node.left !== "undefined") {
+            let appendedBuffer = this._toByteArray(node.left).concat(this._toByteArray(proofHash));
+            proofHash = sha256(appendedBuffer)
+          } else if (typeof node.right !== "undefined") {
+            let appendedBuffer = this._toByteArray(proofHash).concat(this._toByteArray(node.right));
+            // let appendedBuffer = `${proofHash}${node.right}`;
+            proofHash = sha256(appendedBuffer)
+          } else {
+            throw new Error("We should never get here.")
+          }
         }
       }
     } catch (e) {
@@ -266,5 +269,13 @@ class CertificateValidator {
       // outString += letter.charCodeAt(0).toString(16);
     }
     return outString;
+  }
+  _toByteArray(hexString) {
+    let outArray = []
+    let byteSize = 2
+    for (let i = 0; i <hexString.length; i += byteSize) {
+      outArray.push(parseInt(hexString.substring(i, i + byteSize), 16));
+    }
+    return outArray
   }
 }
