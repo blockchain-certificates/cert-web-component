@@ -163,14 +163,13 @@ class CertificateValidator {
   _checkReceipt() {
     this.statusCallback(Status.checkingReceipt)
 
-    const receipt = this._validationState.certificate.reciept;
+    const receipt = this._validationState.certificate.receipt;
+    let proofHash = receipt.targetHash;
+    let merkleRoot = receipt.merkleRoot;
     try {
       let proof = receipt.proof;
-      let targetHash = reciept.targetHash;
-      let merkleRoot = reciept.merkleRoot;
-
-      let proofHash = targetHash;
-      for (node in proof) {
+      for (let index in proof) {
+        const node = proof[index]
         if (typeof node.left !== "undefined") {
           let appendedBuffer = `${node.left}${proofHash}`;
           proofHash = sha256(appendedBuffer)
@@ -182,7 +181,7 @@ class CertificateValidator {
         }
       }
     } catch (e) {
-      this._failed('The reciept is malformed. There was a problem navigating the merkle tree in the receipt.');
+      this._failed('The receipt is malformed. There was a problem navigating the merkle tree in the receipt.');
       return;
     }
 
