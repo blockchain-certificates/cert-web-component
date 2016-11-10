@@ -59,7 +59,7 @@ class CertificateValidator {
       this._validationState.localHash = sha256(this.certificateString)
       this._fetchRemoteHash()
     } else {
-      jsonld.normalize(this._validationState.certificate, {
+      jsonld.normalize(this._validationState.certificate.document, {
         algorithm: 'URDNA2015',
         format: 'application/nquads'
       }, (err, normalized) => {
