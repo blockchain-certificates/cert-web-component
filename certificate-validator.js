@@ -68,7 +68,7 @@ class CertificateValidator {
           return;
         } else {
           const dataStream = this._toData(normalized);
-          this._validationState.localHash = sha256(dataStream);
+          this._validationState.localHash = sha3_256(dataStream);
           this._fetchRemoteHash();
         }
       });
@@ -259,12 +259,13 @@ class CertificateValidator {
     this.statusCallback(Status.failure, reason)
   }
   _toData(string) {
-    return unescape(encodeURIComponent(string));
-    // let outString = "";
-    // for (let i = 0; i < string.length; ++i) {
-    //   let letter = string[i];
-    //   outString += letter.charCodeAt(0).toString(16);
-    // }
-    // return outString;
+    let utf8 = unescape(encodeURIComponent(string));
+    let outString = [];
+    for (let i = 0; i < utf8.length; ++i) {
+      outString.push(utf8.charCodeAt(i));
+      // let letter = string[i];
+      // outString += letter.charCodeAt(0).toString(16);
+    }
+    return outString;
   }
 }
