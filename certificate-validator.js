@@ -96,7 +96,7 @@ class CertificateValidator {
         const responseData = JSON.parse(event.target.responseText)
         let outputs = responseData.out
         let lastOutput = outputs[outputs.length - 1]
-        const opReturnScript = lastOutput.data_hex
+        const opReturnScript = lastOutput.script
         const revokedAddresses = outputs
           .filter((output) => !!output.spent)
           .map((output) => output.addr)
