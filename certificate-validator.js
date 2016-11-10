@@ -172,11 +172,10 @@ class CertificateValidator {
         for (let index in proof) {
           const node = proof[index]
           if (typeof node.left !== "undefined") {
-            let appendedBuffer = this._toByteArray(node.left).concat(this._toByteArray(proofHash));
+            let appendedBuffer = this._toByteArray(`${node.left}${proofHash}`);
             proofHash = sha256(appendedBuffer)
           } else if (typeof node.right !== "undefined") {
-            let appendedBuffer = this._toByteArray(proofHash).concat(this._toByteArray(node.right));
-            // let appendedBuffer = `${proofHash}${node.right}`;
+            let appendedBuffer = this._toByteArray(`${proofHash}${node.right}`);
             proofHash = sha256(appendedBuffer)
           } else {
             throw new Error("We should never get here.")
@@ -198,7 +197,8 @@ class CertificateValidator {
   _checkIssuerSignature() {
     this.statusCallback(Status.checkingIssuerSignature)
 
-    const issuerURL = this._validationState.certificate.issuer.id;
+    let issuer = this._validationState.certificate.issuer || this._validationState.certificate.document.certificate.issuer
+    let issuerURL = issuer.id
     let request = new XMLHttpRequest();
     request.addEventListener('load', (event) => {
       if (event.target.status !== 200) {
@@ -232,7 +232,7 @@ class CertificateValidator {
       this._failed("Error requesting issuer signature.")
     })
     request.open('GET', issuerURL);
-    request.start();
+    request.send();
   }
   _checkRevokedStatus() {
     this.statusCallback(Status.checkingRevokedStatus)
