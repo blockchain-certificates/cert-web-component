@@ -239,14 +239,14 @@ class CertificateValidator {
     let revocationKey = this._validationState.revocationKey;
     const isRevokedByIssuer = (-1 != revokedAddresses.findIndex((address) => address === revocationKey))
     if (isRevokedByIssuer) {
-      this._failed('This certificate has been revoked by the issuer.')
+      this._failed('This certificate batch has been revoked by the issuer.')
       return;
     }
 
     revocationKey = this._validationState.certificate.recipient.revocationKey
     const isRevokedByRecipient = (-1 != revokedAddresses.findIndex((address) => address === revocationKey))
     if (isRevokedByRecipient) {
-      this._failed('This certificate has been revoked by the recipient.');
+      this._failed("This recipient's certificate has been revoked.");
       return;
     }
 
