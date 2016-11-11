@@ -11,10 +11,25 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
 <dom-module id="validate-certificate">
   <template>
     <style>
+    :host {
+      text-align: center;
+    }
+    :host .validate-button {
+      background-color: lightgray;
+      border: 1px solid black;
+      border-radius: 30px;
+      display: block;
+      font-size: 20px;
+      margin: 20px auto 10px auto;
+      padding: 10px 30px;
+    }
+    :host p {
+      margin-top: 30px;
+    }
     </style>
     <content id="content"></content>
     <p>[[_status]]</p>
-    <button on-tap="validate">Validate</button>
+    <button class="validate-button" on-tap="validate">Validate</button>
   </template>
   <script src="./bower_components/jsonld/js/jsonld.js"></script>
   <script src="./bower_components/js-sha3/src/sha3.js"></script>
