@@ -7,7 +7,11 @@
     "test": "test"
   },
   "dependencies": {
-    "bitcoinjs-lib": "^2.3.0"
+    "bigi": "^1.4.2",
+    "bitcoinjs-lib": "^2.3.0",
+    "bs58": "^3.0.0",
+    "buffer": "^5.0.1",
+    "ecurve": "^1.0.4"
   },
   "devDependencies": {},
   "scripts": {
