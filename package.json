@@ -1,0 +1,30 @@
+{
+  "name": "cert-web-component",
+  "version": "0.6.0",
+  "description": "A web component for displaying blockchain certificates.",
+  "main": "blockchain-certificates.html",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "bigi": "^1.4.2",
+    "bitcoinjs-lib": "^2.3.0",
+    "bs58": "^3.0.0",
+    "buffer": "^5.0.1",
+    "ecurve": "^1.0.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blockchain-certificates/cert-web-component.git"
+  },
+  "author": "Chris Downie",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blockchain-certificates/cert-web-component/issues"
+  },
+  "homepage": "https://github.com/blockchain-certificates/cert-web-component#readme"
+}
