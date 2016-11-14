@@ -216,11 +216,20 @@ class CertificateValidator {
         this._validationState.revocationKey = revokeKey
 
         // TODO: Figure this part out
+        let uid = this._validationState.certificate.document.uid
+
         let signature = this._validationState.certificate.document.signature;
         let address = this._addressForSignature(signature);
         if (address != issuerKey) {
           this._failed(`Issuer key doesn't match derived address. Address: ${address}, Issuer Key: ${issuerKey}`);
           return;
+        }
+
+
+        var hashedMessage = bcrypto.sha256(uid)
+        let publicKey = bitcoin.ECPair.fromPublicKeyBuffer(scriptChunks[1])
+        if (publicKey.verify(hashedMessage, signature)) {
+
         }
       } catch (e) {
         this._failed('Unable to parse JSON out of issuer signature data.')
