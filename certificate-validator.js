@@ -40,7 +40,9 @@ class CertificateValidator {
     this.statusCallback(Status.computingLocalHash)
 
     if (this._validationState.certificateVersion === "1.1") {
-      this._validationState.localHash = sha256(this._toUTF8Data(this.certificateString));
+      // When getting the file over HTTP, we've seen an extra newline be appended. This removes that.
+      let correctedData = this.certificateString.slice(0, -1);
+      this._validationState.localHash = sha256(correctedData);
       this._fetchRemoteHash();
     } else {
       jsonld.normalize(this._validationState.certificate.document, {
@@ -285,5 +287,17 @@ class CertificateValidator {
       outArray.push(parseInt(hexString.substring(i, i + byteSize), 16));
     }
     return outArray
+  }
+  _hexFromByteArray(byteArray) {
+    let out = ""
+    for (let i = 0; i < byteArray.length; ++i) {
+      let value = byteArray[i]
+      if (value < 16) {
+        out += "0" + value.toString(16)
+      } else {
+        out += value.toString(16)
+      }
+    }
+    return out
   }
 }
