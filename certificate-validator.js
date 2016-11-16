@@ -51,7 +51,7 @@ class CertificateValidator {
           this._failed(`Failed JSON-LD normalization with error: ${err}`);
           return;
         } else {
-          this._validationState.localHash = sha256(normalized);
+          this._validationState.localHash = sha256(this._toUTF8Data(normalized));
           this._fetchRemoteHash();
         }
       });
@@ -250,8 +250,8 @@ class CertificateValidator {
   // Helper functions
   _toUTF8Data(string) {
     var utf8 = [];
-    for (var i=0; i < str.length; i++) {
-        var charcode = str.charCodeAt(i);
+    for (var i=0; i < string.length; i++) {
+        var charcode = string.charCodeAt(i);
         if (charcode < 0x80) utf8.push(charcode);
         else if (charcode < 0x800) {
             utf8.push(0xc0 | (charcode >> 6),
@@ -269,7 +269,7 @@ class CertificateValidator {
             // subtracting 0x10000 and splitting the
             // 20 bits of 0x0-0xFFFFF into two halves
             charcode = 0x10000 + (((charcode & 0x3ff)<<10)
-                      | (str.charCodeAt(i) & 0x3ff));
+                      | (string.charCodeAt(i) & 0x3ff));
             utf8.push(0xf0 | (charcode >>18),
                       0x80 | ((charcode>>12) & 0x3f),
                       0x80 | ((charcode>>6) & 0x3f),
