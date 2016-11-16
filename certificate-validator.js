@@ -35,29 +35,13 @@ class CertificateValidator {
     }
 
     this._computeLocalHash()
-    // 1. compute local hash
-    //    for v1.2 certs, this involves getting it json-ld normalized
-    // 2. fetch remote hash
-    // 3. compare hashes
-    // 4. Paths diverge.
-
-    // 1.1 certificates
-    // 4. check issuer signature
-    // 5. check revoked status
-    // 6. Done!
-
-    // 1.2 certificates
-    // 4. check merkle root
-    // 5. check receipt
-    // 6. check issuer signature. See 1.1 #4
-
   }
   _computeLocalHash() {
     this.statusCallback(Status.computingLocalHash)
 
     if (this._validationState.certificateVersion === "1.1") {
-      this._validationState.localHash = sha256(this.certificateString)
-      this._fetchRemoteHash()
+      this._validationState.localHash = sha256(this._toUTF8Data(this.certificateString));
+      this._fetchRemoteHash();
     } else {
       jsonld.normalize(this._validationState.certificate.document, {
         algorithm: 'URDNA2015',
@@ -67,8 +51,7 @@ class CertificateValidator {
           this._failed(`Failed JSON-LD normalization with error: ${err}`);
           return;
         } else {
-          const dataStream = this._toData(normalized);
-          this._validationState.localHash = sha256(dataStream);
+          this._validationState.localHash = sha256(normalized);
           this._fetchRemoteHash();
         }
       });
@@ -82,8 +65,12 @@ class CertificateValidator {
       const receipt = this._validationState.certificate.receipt
       transactionID = receipt.anchors[0].sourceId
     } catch (e) {
-      transactionID = window.prompt("What's the transaction ID for this certificate?") || ""
-      transactionID.trim()
+      transactionID = window.prompt("What's the transaction ID for this certificate?")
+      if (transactionID == null) {
+        this._failed(`Can't validate this certifiate without a transaction ID to compare against.`);
+        return;
+      }
+      transactionID = transactionID.trim()
     }
 
     let request = new XMLHttpRequest();
@@ -261,18 +248,35 @@ class CertificateValidator {
     this.statusCallback(Status.failure, reason)
   }
   // Helper functions
-  _addressForSignature(signature) {
-    return "NOPE"
-  }
-  _toData(string) {
-    let utf8 = unescape(encodeURIComponent(string));
-    let outString = [];
-    for (let i = 0; i < utf8.length; ++i) {
-      outString.push(utf8.charCodeAt(i));
-      // let letter = string[i];
-      // outString += letter.charCodeAt(0).toString(16);
+  _toUTF8Data(string) {
+    var utf8 = [];
+    for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+            utf8.push(0xc0 | (charcode >> 6),
+                      0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+            utf8.push(0xe0 | (charcode >> 12),
+                      0x80 | ((charcode>>6) & 0x3f),
+                      0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+            i++;
+            // UTF-16 encodes 0x10000-0x10FFFF by
+            // subtracting 0x10000 and splitting the
+            // 20 bits of 0x0-0xFFFFF into two halves
+            charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+                      | (str.charCodeAt(i) & 0x3ff));
+            utf8.push(0xf0 | (charcode >>18),
+                      0x80 | ((charcode>>12) & 0x3f),
+                      0x80 | ((charcode>>6) & 0x3f),
+                      0x80 | (charcode & 0x3f));
+        }
     }
-    return outString;
+    return utf8;
   }
   _toByteArray(hexString) {
     let outArray = []
