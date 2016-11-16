@@ -186,8 +186,9 @@ class CertificateValidator {
   _checkIssuerSignature() {
     this.statusCallback(Status.checkingIssuerSignature)
 
-    let issuer = this._validationState.certificate.issuer || this._validationState.certificate.document.certificate.issuer
-    let issuerURL = issuer.id
+    let certificate = this._validationState.certificate.certificate || this._validationState.certificate.document.certificate;
+    let issuer = certificate && certificate.issuer;
+    let issuerURL = issuer.id;
     let request = new XMLHttpRequest();
     request.addEventListener('load', (event) => {
       if (event.target.status !== 200) {
