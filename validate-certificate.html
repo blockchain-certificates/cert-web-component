@@ -36,7 +36,10 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
   <script src="./bower_components/js-sha3/src/sha3.js"></script>
   <script src="./bower_components/js-sha256/src/sha256.js"></script>
   <script src="./app.js"></script>
-  <script src="./certificate-validator.js" charset="utf-8"></script>
+  <script src="./bundleCertificate.js"></script>
+  <script src="./bundleStatus.js"></script>
+  <script src="./bundleVerifier.js"></script>
+
   <script>
     Polymer({
 
@@ -68,10 +71,16 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
         }
 
         // Okay, now start up a new validator & let's see what we get.
-        const validator = new CertificateValidator(dataString, (status, message) => {
+        const verifier = new CertificateVerifier(dataString, (status, message) => {
           this._updateStatus(status, message);
         })
-        validator.validate()
+        verifier.verify(function(err, data) {
+          if (err) {
+            // TODO
+            err
+          }
+          this._updateStatus(data);
+        });
       },
 
       _updateStatus(status, message) {

@@ -50,6 +50,8 @@ Displays a rendered Blockchain Certificate
     </template>
   </template>
 
+  <script src="./bundleCertificate.js"></script>
+
   <script>
     Polymer({
 
@@ -146,31 +148,16 @@ Displays a rendered Blockchain Certificate
           // We need to save the string response, because older validation methods require us to validate the unchanged file.
           const stringResponse = event && event.detail && event.detail.response;
           this._setCertificateData(stringResponse);
-
-          const response = JSON.parse(stringResponse);
-          const certificate = response.certificate || response.document.certificate
-          const recipient = response.recipient || response.document.recipient
-          const certificateImage = certificate.image;
-          const name = `${recipient.givenName} ${recipient.familyName}`;
-          const title = certificate.title || certificate.name;
-          const description = certificate.description
-          const signatureImage = response.document
-            && response.document.assertion
-            && response.document.assertion["image:signature"];
-          const sealImage = certificate.issuer.image
-          let subtitle = certificate.subtitle;
-          if (typeof subtitle == "object") {
-            subtitle = subtitle.display ? subtitle.content : ""
-          }
-
+          const certJson = JSON.parse(stringResponse);
+          const cert = Certificate.parseJson(certJson);
           this._setHasCertificateData(true);
-          this._set_certificateImage(certificateImage);
-          this._set_recipient(name);
-          this._set_title(title);
-          this._set_subtitle(subtitle);
-          this._set_description(description);
-          this._set_signatureImage(signatureImage);
-          this._set_sealImage(sealImage);
+          this._set_certificateImage(cert.certificateImage);
+          this._set_recipient(cert.name);
+          this._set_title(cert.title);
+          this._set_subtitle(cert.subtitle);
+          this._set_description(cert.description);
+          this._set_signatureImage(cert.signatureImage);
+          this._set_sealImage(cert.sealImage);
         } catch (e) {
           this._setIsLoading(false);
           this._setHasCertificateData(false);
