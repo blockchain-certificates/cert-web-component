@@ -25,6 +25,5 @@
   },
   "_source": "https://github.com/digitalbazaar/jsonld.js.git",
   "_target": "^0.4.11",
-  "_originalSource": "jsonld",
-  "_direct": true
+  "_originalSource": "jsonld"
 }

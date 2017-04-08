@@ -39,8 +39,8 @@
           <blockchain-certificate href="https://coins.media.mit.edu/56aa4c9bf3a6a0125aaf24bf"></blockchain-certificate>
         </template>
       </demo-snippet>
-    </div>
 
+    </div>
     <h2>The &lt;validate-certificate&gt; element</h2>
     <div class="vertical-section-container centered">
       <h3>Basic validate-certificate demo - locally hosted file</h3>
@@ -56,6 +56,27 @@
           </validate-certificate>
         </template>
       </demo-snippet>
+
+      <h3>V2 Preview - locally hosted valid certificate</h3>
+      <p>This is a preview of a valid V2 certificate file</p>
+      <demo-snippet>
+        <template>
+          <validate-certificate>
+          <blockchain-certificate href="./sample_signed_cert-valid-2.0-alpha.json"></blockchain-certificate>
+          </validate-certificate>
+        </template>
+      </demo-snippet>
+
+      <h3>V2 Preview - locally hosted revoked certificate</h3>
+      <p>This is a preview of a revoked V2 certificate file</p>
+      <demo-snippet>
+        <template>
+          <validate-certificate>
+          <blockchain-certificate href="./sample_signed_cert-revoked-2.0-alpha.json"></blockchain-certificate>
+          </validate-certificate>
+        </template>
+      </demo-snippet>
+
     </div>
   </body>
 </html>

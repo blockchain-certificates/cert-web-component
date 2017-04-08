@@ -37,8 +37,10 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
   <script src="./bower_components/js-sha256/src/sha256.js"></script>
   <script src="./app.js"></script>
   <script src="./bundleCertificate.js"></script>
+  <script src="./bundleCertificateVersion.js"></script>
   <script src="./bundleStatus.js"></script>
   <script src="./bundleVerifier.js"></script>
+
 
   <script>
     Polymer({
@@ -51,36 +53,6 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
           type: String,
           value: "",
         }
-      },
-
-      validate() {
-        const certificateNode = this.queryEffectiveChildren('blockchain-certificate')
-
-        if (certificateNode.isLoading) {
-          this._set_status("Can't validate a certificate while it's loading. Try again after it loads.")
-          return
-        }
-        if (certificateNode.isErrored) {
-          this._set_status("That certificate didn't load correctly, so it can't be validated.")
-          return
-        }
-        const dataString = certificateNode.certificateData || ""
-        if (!certificateNode.hasCertificateData || dataString.length == 0) {
-          this._set_status("Can't validate a certificate that doesn't have any data. Sorry.")
-          return
-        }
-
-        // Okay, now start up a new validator & let's see what we get.
-        const verifier = new CertificateVerifier(dataString, (status, message) => {
-          this._updateStatus(status, message);
-        })
-        verifier.verify(function(err, data) {
-          if (err) {
-            // TODO
-            err
-          }
-          this._updateStatus(data);
-        });
       },
 
       _updateStatus(status, message) {
@@ -116,6 +88,29 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
         }
         console.log(statusString);
         this._set_status(statusString);
+      },
+      validate() {
+        const certificateNode = this.queryEffectiveChildren('blockchain-certificate')
+
+        if (certificateNode.isLoading) {
+          this._set_status("Can't validate a certificate while it's loading. Try again after it loads.")
+          return
+        }
+        if (certificateNode.isErrored) {
+          this._set_status("That certificate didn't load correctly, so it can't be validated.")
+          return
+        }
+        const dataString = certificateNode.certificateData || ""
+        if (!certificateNode.hasCertificateData || dataString.length == 0) {
+          this._set_status("Can't validate a certificate that doesn't have any data. Sorry.")
+          return
+        }
+
+        // Okay, now start up a new validator & let's see what we get.
+        const verifier = new CertificateVerifier(dataString, (status, message) => {
+          this._updateStatus(status, message);
+      });
+        verifier.verify();
       }
     });
   </script>
