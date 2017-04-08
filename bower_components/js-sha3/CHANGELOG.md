@@ -1,5 +1,13 @@
 # Change Log
 
+## v0.5.7 / 2016-12-30
+### Fixed
+- ArrayBuffer detection in old browsers.
+
+## v0.5.6 / 2016-12-29
+### Fixed
+- ArrayBuffer dosen't work in Webpack.
+
 ## v0.5.5 / 2016-09-26
 ### Added
 - TypeScript support.

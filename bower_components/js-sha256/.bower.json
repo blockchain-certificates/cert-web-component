@@ -17,6 +17,5 @@
   },
   "_source": "https://github.com/emn178/js-sha256.git",
   "_target": "^0.3.2",
-  "_originalSource": "js-sha256",
-  "_direct": true
+  "_originalSource": "js-sha256"
 }
