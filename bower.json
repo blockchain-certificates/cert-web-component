@@ -7,7 +7,6 @@
     "js-sha256": "^0.3.2",
     "jsonld": "^0.4.11",
     "js-sha3": "^0.5.5",
-    "jsonld-signatures": "^1.1.5",
     "blockchain-certificate": "^0.7.0"
   },
   "devDependencies": {
