@@ -8,6 +8,7 @@ var Status = {
   checkingMerkleRoot: "checkingMerkleRoot",
   checkingReceipt: "checkingReceipt",
   checkingIssuerSignature: "checkingIssuerSignature",
+  checkingAuthenticity: "checkingAuthenticity",
   checkingRevokedStatus: "checkingRevokedStatus",
   success: "success",
   failure: "failure"

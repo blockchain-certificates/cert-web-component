@@ -74,12 +74,11 @@ var Certificate = function () {
       var sealImage = badge.issuer.image;
       var subtitle = badge.subtitle;
 
-      var uid = certificateJson.id; // TODO: remove urn:uuid:?
+      var uid = certificateJson.id;
       var issuer = badge.issuer;
-      var receipt = certificateJson.signature.merkleProof;
-      var signature = certificateJson.signature.signatureValue;
+      var receipt = certificateJson.signature;
       var publicKey = recipient.recipientProfile.publicKey;
-      return new Certificate(CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, signature, publicKey);
+      return new Certificate(CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, null, publicKey);
     }
   }, {
     key: 'parseJson',
@@ -102,7 +101,7 @@ module.exports = Certificate;
 
 var fs = require('fs');
 
-fs.readFile('../tests/sample_signed_cert-revoked-2.0-alpha.json', 'utf8', function (err, data) {
+fs.readFile('../tests/sample_cert-unmapped-2.0.json', 'utf8', function (err, data) {
   if (err) {
     console.log(err);
   }
@@ -134,6 +133,7 @@ var Status = {
   checkingMerkleRoot: "checkingMerkleRoot",
   checkingReceipt: "checkingReceipt",
   checkingIssuerSignature: "checkingIssuerSignature",
+  checkingAuthenticity: "checkingAuthenticity",
   checkingRevokedStatus: "checkingRevokedStatus",
   success: "success",
   failure: "failure"
@@ -179,25 +179,36 @@ var getTxUrlForChain = function getTxUrlForChain(transactionId, chain) {
   return url;
 };
 
-var TransactionData = function TransactionData(remoteHash, time, revokedAddresses) {
+var TransactionData = function TransactionData(remoteHash, issuingAddress, time, revokedAddresses) {
   _classCallCheck(this, TransactionData);
 
   this.remoteHash = remoteHash;
+  this.issuingAddress = issuingAddress;
   this.time = time;
   this.revokedAddresses = revokedAddresses;
+};
+
+var Key = function Key(publicKey, created, revoked, expires) {
+  _classCallCheck(this, Key);
+
+  this.publicKey = publicKey;
+  this.created = created;
+  this.revoked = revoked;
+  this.expires = expires;
 };
 
 var parseTxResponse = function parseTxResponse(jsonResponse) {
   var time = jsonResponse.received;
   var outputs = jsonResponse.outputs;
   var lastOutput = outputs[outputs.length - 1];
+  var issuingAddress = jsonResponse.inputs[0].addresses[0];
   var opReturnScript = lastOutput.data_hex;
   var revokedAddresses = outputs.filter(function (output) {
     return !!output.spent_by;
   }).map(function (output) {
     return output.addresses[0];
   });
-  return new TransactionData(opReturnScript, time, revokedAddresses);
+  return new TransactionData(opReturnScript, issuingAddress, time, revokedAddresses);
 };
 
 var CertificateVerifier = function () {
@@ -209,13 +220,10 @@ var CertificateVerifier = function () {
 
     var document = certificateJson.document;
     if (!document) {
-      delete certificateJson.signature.merkleProof;
       this.documentWithSignature = certificateJson;
-      // TODO: clean this up
       var certCopy = JSON.parse(certificateString);
       delete certCopy["signature"];
       document = certCopy;
-      //this.documentWithSignature.signature.type = "EcdsaKoblitzSignature2016";
     }
     this.document = document;
     this.statusCallback = statusCallback || noop;
@@ -261,14 +269,30 @@ var CertificateVerifier = function () {
         this._verificationState.localHash = sha256(correctedData);
         this._fetchRemoteHash();
       } else {
+        var expandContext = this.document["@context"];
+        if (this.certificate.version === CertificateVersion.v2_0) {
+          expandContext.push({ "@vocab": "http://fallback.org/" });
+        }
         jsonld.normalize(this.document, {
           algorithm: 'URDNA2015',
-          format: 'application/nquads'
+          format: 'application/nquads',
+          expandContext: expandContext
         }, function (err, normalized) {
           if (!!err) {
             var reason = "Failed JSON-LD normalization";
             return _this._failed(completionCallback, reason, err);
           } else {
+
+            var myRegexp = /<http:\/\/fallback\.org\/(.*)>/;
+            var matches = myRegexp.exec(normalized);
+            if (matches) {
+              var unmappedFields = Array();
+              for (var i = 0; i < matches.length; i++) {
+                unmappedFields.push(matches[i]);
+              }
+              var reason = "Found unmapped fields during JSON-LD normalization: " + unmappedFields.join(",");
+              return _this._failed(completionCallback, reason, err);
+            }
             _this._verificationState.normalized = normalized;
             _this._verificationState.localHash = sha256(_this._toUTF8Data(normalized));
             _this._fetchRemoteHash(completionCallback);
@@ -305,6 +329,8 @@ var CertificateVerifier = function () {
           var txData = parseTxResponse(responseData);
           _this2._verificationState.remoteHash = txData.remoteHash;
           _this2._verificationState.revokedAddresses = txData.revokedAddresses;
+          _this2._verificationState.txIssuingAddress = txData.issuingAddress;
+          _this2._verificationState.time = txData.time;
         } catch (e) {
           var reason = "Unable to parse JSON out of remote transaction data.";
           return _this2._failed(completionCallback, reason, e);
@@ -395,14 +421,19 @@ var CertificateVerifier = function () {
         return this._failed(completionCallback, reason, null);
       }
 
-      this._checkIssuerSignature(completionCallback);
+      if (this.certificate.version == CertificateVersion.v2_0) {
+        // in v2 we don't check the issuer signature, and we check authenticity
+        this._checkAuthenticity(completionCallback);
+      } else {
+        this._checkIssuerSignature(completionCallback);
+      }
     }
   }, {
-    key: '_checkIssuerSignature',
-    value: function _checkIssuerSignature(completionCallback) {
+    key: '_checkAuthenticity',
+    value: function _checkAuthenticity(completionCallback) {
       var _this3 = this;
 
-      this.statusCallback(Status.checkingIssuerSignature);
+      this.statusCallback(Status.checkingAuthenticity);
 
       var issuer = this.certificate.issuer;
       var issuerURL = issuer.id;
@@ -414,60 +445,93 @@ var CertificateVerifier = function () {
         }
         try {
           var responseData = JSON.parse(request.responseText);
-          var issuerKey = void 0;
-          var revocationKey = null;
-          if (_this3.certificate.version === CertificateVersion.v2_0) {
-            issuerKey = responseData.publicKey;
 
-            // This was used for jsonld-signatures library, but that had browserification issues. Eventually we should
-            // optionally validate with jsonld-signatures as well.
-            /*
-             var publicKeyBtc = {
-             '@context': SECURITY_CONTEXT_URL,
-             id: "ecdsa-koblitz-pubkey:" + issuerKey,
-             type: 'CryptographicKey',
-             owner: this.certificate.signature.creator,
-             publicKeyWif: issuerKey
-             };
-              var publicKeyBtcOwner = {
-             '@context': SECURITY_CONTEXT_URL,
-             id: this.certificate.issuer.id,
-             publicKey: ["ecdsa-koblitz-pubkey:" + issuerKey]
-             };*/
-
-            var options = {};
-            options.date = _this3.documentWithSignature.signature.created;
-            options.algorithm = "EcdsaKoblitzSignature2016";
-            var signature = _this3.certificate.signature;
-            var normalized = _this3._verificationState.normalized;
-            var toHash = _getDataToHash(normalized, options = options);
-
-            if (!bitcoin.message.verify(issuerKey, _this3.certificate.signature, toHash, _this3._verificationState.chain)) {
-              var reason = "Issuer key doesn't match derived address.";
-              return _this3._failed(completionCallback, reason, null);
-            }
-            _this3._checkRevokedStatus(completionCallback);
-          } else {
-            var issuerKeys = responseData.issuerKeys || [];
-            var revocationKeys = responseData.revocationKeys || [];
-            issuerKey = issuerKeys[0].key;
-            revocationKey = revocationKeys[0].key;
-            if (!bitcoin.message.verify(issuerKey, _this3.certificate.signature, _this3.certificate.uid)) {
-              // TODO: `Issuer key doesn't match derived address. Address: ${address}, Issuer Key: ${issuerKey}`
-              var reason = "Issuer key doesn't match derived address.";
-              return _this3._failed(completionCallback, reason, null);
-            }
-            _this3._verificationState.issuerKey = issuerKey;
-            _this3._verificationState.revocationKey = revocationKey;
-            _this3._checkRevokedStatus(completionCallback);
+          var keyMap = {};
+          var responseKeys = responseData.publicKeys;
+          for (var i = 0; i < responseKeys.length; i++) {
+            var key = responseKeys[i];
+            var created = key.created || null;
+            var revoked = key.revoked || null;
+            var expires = key.expires || null;
+            var publicKey = key.publicKey.replace('ecdsa-koblitz-pubkey:', '');
+            var k = new Key(publicKey, created, revoked, expires);
+            keyMap[k.publicKey] = k;
           }
+
+          var txAddress = _this3._verificationState.txIssuingAddress;
+          var txTime = _this3._verificationState.time;
+          var validKey = false;
+          if (txAddress in keyMap) {
+            validKey = true;
+            var theKey = keyMap[txAddress];
+            _this3._verificationState.issuerKey = txAddress;
+            if (theKey.created) {
+              validKey &= txTime >= key.created;
+            }
+            if (theKey.revoked) {
+              validKey &= txTime <= key.revoked;
+            }
+            if (theKey.expires) {
+              validKey &= txTime <= key.expires;
+            }
+          }
+
+          if (!validKey) {
+            return _this3._failed(completionCallback, "Transaction issuing address does not match issuer addresses", null);
+          }
+
+          _this3._checkRevokedStatus(completionCallback);
         } catch (e) {
-          var reason = "Unable to parse JSON out of issuer signature data.";
+          var reason = "Unable to parse JSON out of issuer identification data.";
           return _this3._failed(completionCallback, reason, e);
         }
       });
       request.addEventListener('error', function () {
-        return _this3._failed(completionCallback, "Error requesting issuer signature.", null);
+        return _this3._failed(completionCallback, "Error requesting issuer identification.", null);
+      });
+
+      request.open('GET', issuerURL);
+      request.send();
+    }
+  }, {
+    key: '_checkIssuerSignature',
+    value: function _checkIssuerSignature(completionCallback) {
+      var _this4 = this;
+
+      this.statusCallback(Status.checkingIssuerSignature);
+
+      var issuer = this.certificate.issuer;
+      var issuerURL = issuer.id;
+      var request = new XMLHttpRequest();
+      request.addEventListener('load', function () {
+        if (request.status !== 200) {
+          var reason = "Got unexpected response when trying to get remote transaction data; " + request.status;
+          return _this4._failed(completionCallback, reason, null);
+        }
+        try {
+          var responseData = JSON.parse(request.responseText);
+          var issuerKey = void 0;
+          var revocationKey = null;
+
+          var issuerKeys = responseData.issuerKeys || [];
+          var revocationKeys = responseData.revocationKeys || [];
+          issuerKey = issuerKeys[0].key;
+          revocationKey = revocationKeys[0].key;
+          if (!bitcoin.message.verify(issuerKey, _this4.certificate.signature, _this4.certificate.uid)) {
+            // TODO: `Issuer key doesn't match derived address. Address: ${address}, Issuer Key: ${issuerKey}`
+            var reason = "Issuer key doesn't match derived address.";
+            return _this4._failed(completionCallback, reason, null);
+          }
+          _this4._verificationState.issuerKey = issuerKey;
+          _this4._verificationState.revocationKey = revocationKey;
+          _this4._checkRevokedStatus(completionCallback);
+        } catch (e) {
+          var reason = "Unable to parse JSON out of issuer signature data.";
+          return _this4._failed(completionCallback, reason, e);
+        }
+      });
+      request.addEventListener('error', function () {
+        return _this4._failed(completionCallback, "Error requesting issuer signature.", null);
       });
 
       request.open('GET', issuerURL);
@@ -476,7 +540,7 @@ var CertificateVerifier = function () {
   }, {
     key: '_checkRevokedStatus',
     value: function _checkRevokedStatus(completionCallback) {
-      var _this4 = this;
+      var _this5 = this;
 
       this.statusCallback(Status.checkingRevokedStatus);
 
@@ -487,26 +551,26 @@ var CertificateVerifier = function () {
           var status = request.status;
           if (status != 200) {
             var reason = "Got unexpected response when trying to get remote revocation data; " + status;
-            return _this4._failed(completionCallback, reason);
+            return _this5._failed(completionCallback, reason);
           }
           try {
             var responseData = JSON.parse(request.responseText);
             var revokedAddresses = responseData.revokedAssertions.map(function (output) {
               return output.id;
-            }); // TODO: remove urn:uuid:
-            _this4._verificationState.revokedAddresses = revokedAddresses;
-            var recipientUid = _this4.certificate.uid;
+            });
+            _this5._verificationState.revokedAddresses = revokedAddresses;
+            var recipientUid = _this5.certificate.uid;
             var isRevokedByIssuer = -1 != revokedAddresses.findIndex(function (uid) {
               return uid === recipientUid;
             });
             if (isRevokedByIssuer) {
               var reason = "This certificate has been revoked by the issuer.";
-              return _this4._failed(completionCallback, reason, null);
+              return _this5._failed(completionCallback, reason, null);
             }
-            return _this4._succeed(completionCallback);
+            return _this5._succeed(completionCallback);
           } catch (e) {
             var reason = "Unable to parse JSON out of remote revocation data.";
-            return _this4._failed(completionCallback, reason, e);
+            return _this5._failed(completionCallback, reason, e);
           }
         });
         var url = this.certificate.issuer.revocationList;
@@ -591,65 +655,34 @@ var CertificateVerifier = function () {
   return CertificateVerifier;
 }();
 
-function _getDataToHash(input, options) {
-  var toHash = '';
-  if (options.algorithm === 'GraphSignature2012') {
-    if (options.nonce !== null && options.nonce !== undefined) {
-      toHash += options.nonce;
-    }
-    toHash += options.date;
-    toHash += input;
-    if (options.domain !== null && options.domain !== undefined) {
-      toHash += '@' + options.domain;
-    }
-  } else {
-    var headers = {
-      'http://purl.org/dc/elements/1.1/created': options.date,
-      'https://w3id.org/security#domain': options.domain,
-      'https://w3id.org/security#nonce': options.nonce
-    };
-    // add headers in lexicographical order
-    var keys = Object.keys(headers).sort();
-    for (var i = 0; i < keys.length; ++i) {
-      var key = keys[i];
-      var value = headers[key];
-      if (value !== null && value !== undefined) {
-        toHash += key + ': ' + value + '\n';
-      }
-    }
-    toHash += input;
-  }
-  return toHash;
-}
-
 module.exports = CertificateVerifier;
 
 /*
- var fs = require('fs');
+var fs = require('fs');
 
- function statusCallback(arg1) {
- console.log("status=" + arg1);
- }
+function statusCallback(arg1) {
+  console.log("status=" + arg1);
+}
 
- fs.readFile('../tests/sample_signed_cert-revoked-2.0-alpha.json', 'utf8', function (err, data) {
- if (err) {
- console.log(err);
- }
- var certVerifier = new CertificateVerifier(data, statusCallback);
+fs.readFile('../tests/sample_cert-valid-2.0.json', 'utf8', function (err, data) {
+  if (err) {
+    console.log(err);
+  }
+  var certVerifier = new CertificateVerifier(data, statusCallback);
 
- certVerifier.verify(function (err, data) {
- if (err) {
- console.log("failed");
- console.log(data);
- //console.log(err);
- } else {
- console.log("done");
+  certVerifier.verify(function (err, data) {
+    if (err) {
+      console.log("failed");
+      console.log(data);
+      //console.log(err);
+    } else {
+      console.log("done");
 
- }
- });
+    }
+  });
 
- });
- */
+});
+*/
 
 },{"./certificate":1,"./certificateVersion":2,"./status":3,"bitcoinjs-lib":19,"jsonld":49,"sha256":60,"verror":65,"xmlhttprequest":69}],5:[function(require,module,exports){
 // base-x encoding

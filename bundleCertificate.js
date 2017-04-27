@@ -74,12 +74,11 @@ var Certificate = function () {
       var sealImage = badge.issuer.image;
       var subtitle = badge.subtitle;
 
-      var uid = certificateJson.id; // TODO: remove urn:uuid:?
+      var uid = certificateJson.id;
       var issuer = badge.issuer;
-      var receipt = certificateJson.signature.merkleProof;
-      var signature = certificateJson.signature.signatureValue;
+      var receipt = certificateJson.signature;
       var publicKey = recipient.recipientProfile.publicKey;
-      return new Certificate(CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, signature, publicKey);
+      return new Certificate(CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, null, publicKey);
     }
   }, {
     key: 'parseJson',
@@ -102,7 +101,7 @@ module.exports = Certificate;
 
 var fs = require('fs');
 
-fs.readFile('../tests/sample_signed_cert-revoked-2.0-alpha.json', 'utf8', function (err, data) {
+fs.readFile('../tests/sample_cert-unmapped-2.0.json', 'utf8', function (err, data) {
   if (err) {
     console.log(err);
   }
