@@ -8,6 +8,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var CertificateVersion = require('./certificateVersion');
+var GUID_REGEX = /[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}/;
 
 var Certificate = function () {
   function Certificate(version, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, signature, publicKey, revocationKey) {
@@ -74,7 +75,8 @@ var Certificate = function () {
       var sealImage = badge.issuer.image;
       var subtitle = badge.subtitle;
 
-      var uid = certificateJson.id;
+      var matches = GUID_REGEX.exec(certificateJson.id);
+      var uid = matches[0];
       var issuer = badge.issuer;
       var receipt = certificateJson.signature;
       var publicKey = recipient.recipientProfile.publicKey;
@@ -98,10 +100,9 @@ var Certificate = function () {
 module.exports = Certificate;
 
 /*
-
 var fs = require('fs');
 
-fs.readFile('../tests/sample_cert-unmapped-2.0.json', 'utf8', function (err, data) {
+fs.readFile('../tests/sample_cert-valid-2.0.json', 'utf8', function (err, data) {
   if (err) {
     console.log(err);
   }
@@ -109,8 +110,7 @@ fs.readFile('../tests/sample_cert-unmapped-2.0.json', 'utf8', function (err, dat
   let cert = Certificate.parseJson(JSON.parse(data));
   console.log(cert.name);
 
-});
-*/
+});*/
 
 },{"./certificateVersion":2}],2:[function(require,module,exports){
 "use strict";
@@ -158,6 +158,7 @@ var Certificate = require('./certificate');
 var CertificateVersion = require('./certificateVersion');
 
 var SECURITY_CONTEXT_URL = "https://w3id.org/security/v1";
+var GUID_REGEX = /[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}/;
 
 var noop = function noop() {};
 
@@ -556,7 +557,7 @@ var CertificateVerifier = function () {
           try {
             var responseData = JSON.parse(request.responseText);
             var revokedAddresses = responseData.revokedAssertions.map(function (output) {
-              return output.id;
+              return GUID_REGEX.exec(output.id)[0];
             });
             _this5._verificationState.revokedAddresses = revokedAddresses;
             var recipientUid = _this5.certificate.uid;
@@ -664,7 +665,7 @@ function statusCallback(arg1) {
   console.log("status=" + arg1);
 }
 
-fs.readFile('../tests/sample_cert-valid-2.0.json', 'utf8', function (err, data) {
+fs.readFile('../tests/sample_cert-valid-1.2.0.json', 'utf8', function (err, data) {
   if (err) {
     console.log(err);
   }
