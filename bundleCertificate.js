@@ -41,6 +41,19 @@ var Certificate = function () {
       var title = certificate.title || certificate.name;
       var description = certificate.description;
       var signatureImage = certificateJson.document && certificateJson.document.assertion && certificateJson.document.assertion["image:signature"];
+
+      var signatureImageObjects = [];
+      if (signatureImage.constructor === Array) {
+        for (var index in badge.signatureLines) {
+          var signatureLine = badge.signatureLines[index];
+          var signatureObject = new SignatureImage(signatureLine.image, signatureLine.jobTitle || null, signatureLine.name || null);
+          signatureImageObjects.push(signatureObject);
+        }
+      } else {
+        var signatureObject = new SignatureImage(signatureImage, null, null);
+        signatureImageObjects.push(signatureObject);
+      }
+
       var sealImage = certificate.issuer.image;
       var subtitle = certificate.subtitle;
       if ((typeof subtitle === 'undefined' ? 'undefined' : _typeof(subtitle)) == "object") {
@@ -60,7 +73,7 @@ var Certificate = function () {
         version = CertificateVersion.v1_2;
       }
 
-      return new Certificate(version, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, signature, publicKey, revocationKey);
+      return new Certificate(version, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, uid, issuer, receipt, signature, publicKey, revocationKey);
     }
   }, {
     key: 'parseV2',
@@ -71,7 +84,14 @@ var Certificate = function () {
       var name = recipient.recipientProfile.name;
       var title = badge.name;
       var description = badge.description;
-      var signatureImage = badge.signatureLines;
+
+      var signatureImageObjects = [];
+      for (var index in badge.signatureLines) {
+        var signatureLine = badge.signatureLines[index];
+        var signatureObject = new SignatureImage(signatureLine.image, signatureLine.jobTitle, signatureLine.name);
+        signatureImageObjects.push(signatureObject);
+      }
+
       var sealImage = badge.issuer.image;
       var subtitle = badge.subtitle;
 
@@ -80,7 +100,7 @@ var Certificate = function () {
       var issuer = badge.issuer;
       var receipt = certificateJson.signature;
       var publicKey = recipient.recipientProfile.publicKey;
-      return new Certificate(CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, null, publicKey);
+      return new Certificate(CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, uid, issuer, receipt, null, publicKey);
     }
   }, {
     key: 'parseJson',
@@ -97,9 +117,17 @@ var Certificate = function () {
   return Certificate;
 }();
 
-module.exports = Certificate;
+var SignatureImage = function SignatureImage(image, jobTitle, name) {
+  _classCallCheck(this, SignatureImage);
 
+  this.image = image;
+  this.jobTitle = jobTitle;
+  this.name = name;
+};
+
+module.exports = Certificate;
 /*
+
 var fs = require('fs');
 
 fs.readFile('../tests/sample_cert-valid-2.0.json', 'utf8', function (err, data) {

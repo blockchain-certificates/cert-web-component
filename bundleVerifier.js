@@ -41,6 +41,19 @@ var Certificate = function () {
       var title = certificate.title || certificate.name;
       var description = certificate.description;
       var signatureImage = certificateJson.document && certificateJson.document.assertion && certificateJson.document.assertion["image:signature"];
+
+      var signatureImageObjects = [];
+      if (signatureImage.constructor === Array) {
+        for (var index in badge.signatureLines) {
+          var signatureLine = badge.signatureLines[index];
+          var signatureObject = new SignatureImage(signatureLine.image, signatureLine.jobTitle || null, signatureLine.name || null);
+          signatureImageObjects.push(signatureObject);
+        }
+      } else {
+        var signatureObject = new SignatureImage(signatureImage, null, null);
+        signatureImageObjects.push(signatureObject);
+      }
+
       var sealImage = certificate.issuer.image;
       var subtitle = certificate.subtitle;
       if ((typeof subtitle === 'undefined' ? 'undefined' : _typeof(subtitle)) == "object") {
@@ -60,7 +73,7 @@ var Certificate = function () {
         version = CertificateVersion.v1_2;
       }
 
-      return new Certificate(version, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, signature, publicKey, revocationKey);
+      return new Certificate(version, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, uid, issuer, receipt, signature, publicKey, revocationKey);
     }
   }, {
     key: 'parseV2',
@@ -71,7 +84,14 @@ var Certificate = function () {
       var name = recipient.recipientProfile.name;
       var title = badge.name;
       var description = badge.description;
-      var signatureImage = badge.signatureLines;
+
+      var signatureImageObjects = [];
+      for (var index in badge.signatureLines) {
+        var signatureLine = badge.signatureLines[index];
+        var signatureObject = new SignatureImage(signatureLine.image, signatureLine.jobTitle, signatureLine.name);
+        signatureImageObjects.push(signatureObject);
+      }
+
       var sealImage = badge.issuer.image;
       var subtitle = badge.subtitle;
 
@@ -80,7 +100,7 @@ var Certificate = function () {
       var issuer = badge.issuer;
       var receipt = certificateJson.signature;
       var publicKey = recipient.recipientProfile.publicKey;
-      return new Certificate(CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, null, publicKey);
+      return new Certificate(CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, uid, issuer, receipt, null, publicKey);
     }
   }, {
     key: 'parseJson',
@@ -97,9 +117,17 @@ var Certificate = function () {
   return Certificate;
 }();
 
-module.exports = Certificate;
+var SignatureImage = function SignatureImage(image, jobTitle, name) {
+  _classCallCheck(this, SignatureImage);
 
+  this.image = image;
+  this.jobTitle = jobTitle;
+  this.name = name;
+};
+
+module.exports = Certificate;
 /*
+
 var fs = require('fs');
 
 fs.readFile('../tests/sample_cert-valid-2.0.json', 'utf8', function (err, data) {
@@ -441,21 +469,29 @@ var CertificateVerifier = function () {
       var request = new XMLHttpRequest();
       request.addEventListener('load', function () {
         if (request.status !== 200) {
-          var reason = "Got unexpected response when trying to get remote transaction data; " + request.status;
+          var reason = "Got unexpected response when trying to get remote issuer data; " + request.status;
           return _this3._failed(completionCallback, reason, null);
         }
         try {
           var responseData = JSON.parse(request.responseText);
 
           var keyMap = {};
-          var responseKeys = responseData.publicKeys;
-          for (var i = 0; i < responseKeys.length; i++) {
-            var key = responseKeys[i];
-            var created = key.created || null;
-            var revoked = key.revoked || null;
-            var expires = key.expires || null;
-            var publicKey = key.publicKey.replace('ecdsa-koblitz-pubkey:', '');
-            var k = new Key(publicKey, created, revoked, expires);
+          if ('@context' in responseData) {
+            var responseKeys = responseData.publicKeys;
+            for (var i = 0; i < responseKeys.length; i++) {
+              var key = responseKeys[i];
+              var created = key.created || null;
+              var revoked = key.revoked || null;
+              var expires = key.expires || null;
+              var publicKey = key.publicKey.replace('ecdsa-koblitz-pubkey:', '');
+              var k = new Key(publicKey, created, revoked, expires);
+              keyMap[k.publicKey] = k;
+            }
+          } else {
+            // This is a v2 certificate with a v1 issuer
+            var issuerKeys = responseData.issuerKeys || [];
+            var issuerKey = issuerKeys[0].key;
+            var k = new Key(issuerKey, null, null, null);
             keyMap[k.publicKey] = k;
           }
 
@@ -478,7 +514,7 @@ var CertificateVerifier = function () {
           }
 
           if (!validKey) {
-            return _this3._failed(completionCallback, "Transaction issuing address does not match issuer addresses", null);
+            return _this3._failed(completionCallback, "Transaction occurred at time when issuing address was not considered valid.", null);
           }
 
           _this3._checkRevokedStatus(completionCallback);
@@ -488,6 +524,7 @@ var CertificateVerifier = function () {
         }
       });
       request.addEventListener('error', function () {
+        console.log(request.status);
         return _this3._failed(completionCallback, "Error requesting issuer identification.", null);
       });
 
@@ -665,7 +702,7 @@ function statusCallback(arg1) {
   console.log("status=" + arg1);
 }
 
-fs.readFile('../tests/sample_cert-valid-1.2.0.json', 'utf8', function (err, data) {
+fs.readFile('../tests/sample_cert-with_v1_issuer-2.0.json', 'utf8', function (err, data) {
   if (err) {
     console.log(err);
   }
