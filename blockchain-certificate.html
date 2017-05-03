@@ -157,7 +157,7 @@ Displays a rendered Blockchain Certificate
           this._set_title(cert.title);
           this._set_subtitle(cert.subtitle);
           this._set_description(cert.description);
-          this._set_signatureImage(cert.signatureImage);
+          this._set_signatureImage(cert.signatureImage[0].image);
           this._set_sealImage(cert.sealImage);
         } catch (e) {
           this._setIsLoading(false);
