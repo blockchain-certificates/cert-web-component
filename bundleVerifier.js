@@ -203,9 +203,9 @@ var getChainForAddress = function getChainForAddress(publicKey) {
 var getTxUrlForChain = function getTxUrlForChain(transactionId, chain) {
   var url = void 0;
   if (chain === bitcoin.networks.mainnet) {
-    url = "https://api.blockcypher.com/v1/btc/main/txs/" + transactionId;
+    url = "https://api.blockcypher.com/v1/btc/main/txs/" + transactionId + "?limit=500";
   } else {
-    url = "http://api.blockcypher.com/v1/btc/test3/txs/" + transactionId;
+    url = "http://api.blockcypher.com/v1/btc/test3/txs/" + transactionId + "?limit=500";
   }
   return url;
 };
@@ -557,7 +557,7 @@ var CertificateVerifier = function () {
           var revocationKeys = responseData.revocationKeys || [];
           issuerKey = issuerKeys[0].key;
           revocationKey = revocationKeys[0].key;
-          if (!bitcoin.message.verify(issuerKey, _this4.certificate.signature, _this4.certificate.uid)) {
+          if (!bitcoin.message.verify(issuerKey, _this4.certificate.signature, _this4.certificate.uid, getChainForAddress(issuerKey))) {
             // TODO: `Issuer key doesn't match derived address. Address: ${address}, Issuer Key: ${issuerKey}`
             var reason = "Issuer key doesn't match derived address.";
             return _this4._failed(completionCallback, reason, null);
