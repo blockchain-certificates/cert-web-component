@@ -44,9 +44,11 @@ var Certificate = function () {
 
       var signatureImageObjects = [];
       if (signatureImage.constructor === Array) {
-        for (var index in badge.signatureLines) {
-          var signatureLine = badge.signatureLines[index];
-          var signatureObject = new SignatureImage(signatureLine.image, signatureLine.jobTitle || null, signatureLine.name || null);
+        for (var index in signatureImage) {
+          var signatureLine = signatureImage[index];
+          var jobTitle = 'jobTitle' in signatureLine ? signatureLine.jobTitle : null;
+          var signerName = 'name' in signatureLine ? signatureLine.name : null;
+          var signatureObject = new SignatureImage(signatureLine.image, jobTitle, signerName);
           signatureImageObjects.push(signatureObject);
         }
       } else {
@@ -126,11 +128,11 @@ var SignatureImage = function SignatureImage(image, jobTitle, name) {
 };
 
 module.exports = Certificate;
-/*
 
+/*
 var fs = require('fs');
 
-fs.readFile('../tests/sample_cert-valid-2.0.json', 'utf8', function (err, data) {
+fs.readFile('../tests/sample_cert-valid-1.2.0.json', 'utf8', function (err, data) {
   if (err) {
     console.log(err);
   }
