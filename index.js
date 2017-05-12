@@ -3,5 +3,6 @@ module.exports = {
   bitcoin: require('bitcoinjs-lib'),
   ecurve: require('ecurve'),
   BigInteger: require('bigi'),
-  Buffer: require('buffer')
+  Buffer: require('buffer'),
+  Verifier: require('cert-verifier-js')
 }

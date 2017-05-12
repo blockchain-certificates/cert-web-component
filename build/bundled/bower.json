@@ -7,7 +7,8 @@
     "js-sha256": "^0.3.2",
     "jsonld": "^0.4.11",
     "js-sha3": "^0.5.5",
-    "blockchain-certificate": "^0.7.0"
+    "blockchain-certificate": "^0.7.0",
+    "cert-verifier-js": "git@github.com:blockchain-certificates/cert-verifier-js.git"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",

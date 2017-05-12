@@ -38,7 +38,8 @@
     </template>
   </template>
 
-  <script src="./bundleCertificate.js"></script>
+
+  <script src="./bower_components/cert-verifier-js/verifier.js"></script>
 
   <script>Polymer({is:"blockchain-certificate",properties:{href:{type:String,value:"blockchain-certificate"},isLoading:{type:Boolean,value:!0,readOnly:!0},isErrored:{type:Boolean,value:!1,readOnly:!0},hasCertificateData:{type:Boolean,value:!1,readOnly:!0},certificateData:{type:String,readOnly:!0},_status:{type:String,readOnly:!0},_certificateImage:{type:String,readOnly:!0},_recipient:{type:String,readOnly:!0},_title:{type:String,readOnly:!0},_subtitle:{type:String,readOnly:!0},_description:{type:String,readOnly:!0},_signatureImage:{type:String,readOnly:!0},_sealImage:{type:String,readOnly:!0}},_handleResponse:function(e){try{const t=e&&e.detail&&e.detail.response;this._setCertificateData(t);const i=JSON.parse(t),a=Certificate.parseJson(i);this._setHasCertificateData(!0),this._set_certificateImage(a.certificateImage),this._set_recipient(a.name),this._set_title(a.title),this._set_subtitle(a.subtitle),this._set_description(a.description),this._set_signatureImage(a.signatureImage[0].image),this._set_sealImage(a.sealImage)}catch(e){this._setIsLoading(!1),this._setHasCertificateData(!1),this._setIsErrored(!0),this._set_status("Referenced certificate doesn't appear to be valid.")}finally{this._setIsLoading(!1)}},_handleError:function(){this._setIsLoading(!1),this._setHasCertificateData(!1),this._setIsErrored(!0),this._set_status("Failed to load certificate at URL.")}});</script>
 </dom-module>

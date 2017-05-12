@@ -11,7 +11,8 @@
     "bitcoinjs-lib": "^2.3.0",
     "bs58": "^3.0.0",
     "buffer": "^5.0.1",
-    "ecurve": "^1.0.4"
+    "ecurve": "^1.0.4",
+    "cert-verifier-js": "git@github.com:blockchain-certificates/cert-verifier-js.git"
   },
   "devDependencies": {},
   "scripts": {
