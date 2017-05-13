@@ -50,7 +50,7 @@ Displays a rendered Blockchain Certificate
     </template>
   </template>
 
-  <script src="./bundleCertificate.js"></script>
+  <script src="./verifier.js"></script>
 
   <script>
     Polymer({
@@ -149,7 +149,7 @@ Displays a rendered Blockchain Certificate
           const stringResponse = event && event.detail && event.detail.response;
           this._setCertificateData(stringResponse);
           const certJson = JSON.parse(stringResponse);
-          const cert = Certificate.parseJson(certJson);
+          const cert = Verifier.Certificate.parseJson(certJson);
           this._setHasCertificateData(true);
           this._set_certificateImage(cert.certificateImage);
           this._set_recipient(cert.name);

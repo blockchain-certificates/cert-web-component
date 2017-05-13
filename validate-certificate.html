@@ -36,8 +36,7 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
   <script src="./bower_components/js-sha3/src/sha3.js"></script>
   <script src="./bower_components/js-sha256/src/sha256.js"></script>
   <script src="./app.js"></script>
-  <script src="./bundleStatus.js"></script>
-  <script src="./bundleVerifier.js"></script>
+  <script src="./verifier.js"></script>
 
 
   <script>
@@ -56,31 +55,31 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
       _updateStatus(status, message) {
         let statusString = ""
         switch (status) {
-          case Status.computingLocalHash:
+          case Verifier.Status.computingLocalHash:
             statusString = "Computing local hash..."
             break;
-          case Status.fetchingRemoteHash:
+          case Verifier.Status.fetchingRemoteHash:
             statusString = "Fetching remote hash..."
             break;
-          case Status.comparingHashes:
+          case Verifier.Status.comparingHashes:
             statusString = "Comparing local and remote hashes..."
             break;
-          case Status.checkingMerkleRoot:
+          case Verifier.Status.checkingMerkleRoot:
             statusString = "Checking merkle root..."
             break;
-          case Status.checkingReceipt:
+          case Verifier.Status.checkingReceipt:
             statusString = "Checking the receipt..."
             break;
-          case Status.checkingIssuerSignature:
+          case Verifier.Status.checkingIssuerSignature:
             statusString = "Checking the issuer's signature..."
             break;
-          case Status.checkingRevokedStatus:
+          case Verifier.Status.checkingRevokedStatus:
             statusString = "Checking if the certificate has been revoked..."
             break;
-          case Status.success:
+          case Verifier.Status.success:
             statusString = "This is a valid certificate!"
             break;
-          case Status.failure:
+          case Verifier.Status.failure:
             statusString = `Not a valid certificate. ${message}`
             break;
         }
@@ -105,7 +104,7 @@ With a <blockchain-certificate> child, presents a "validate" button which valida
         }
 
         // Okay, now start up a new validator & let's see what we get.
-        const verifier = new CertificateVerifier(dataString, (status, message) => {
+        const verifier = new Verifier.CertificateVerifier(dataString, (status, message) => {
           this._updateStatus(status, message);
       });
         verifier.verify();
