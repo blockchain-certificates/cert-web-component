@@ -36,6 +36,25 @@ At that point, you'll just need to do a few simple things to see the certificate
 
 For more detailed documentation on the attributes & a demo, use `polymer serve` below and go to [http://localhost:8080/components/blockchain-certificate/](http://localhost:8080/components/blockchain-certificate/) in order to see polymer's generated docs/demo web application.
 
+# Using \<validate-certificate\>
+
+
+A demo of the certificate verifier is available here:
+
+[http://localhost:8080/demo/verifier-demo.html](http://localhost:8080/demo/verifier-demo.html)
+
+The `verifier-demo` sample displays and verifies a local Blockchain Certificate (`href="./sample_signed_cert-valid-1.2.0.json"`).
+
+```
+<validate-certificate href="./sample_signed_cert-valid-1.2.0.json">
+  <blockchain-certificate href="./sample_signed_cert-valid-1.2.0.json"></blockchain-certificate>
+</validate-certificate>
+```
+
+The `validate` button starts the verification process, and the results are displayed in the web page. 
+
+Note that the URL argument may be a URL hosting a Blockcert. This is useful for Blockcerts that are hosted by an issuer, in S3, etc.
+
 # Development
 ## Install the Polymer-CLI
 
