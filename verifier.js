@@ -14,7 +14,7 @@ var _certificateVersion = require('./certificateVersion');
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var GUID_REGEX = /[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}/;
+var GUID_REGEX = /[0-9a-fA-F]{8}\-?[0-9a-fA-F]{4}\-?[0-9a-fA-F]{4}\-?[0-9a-fA-F]{4}\-?[0-9a-fA-F]{12}/;
 
 var Certificate = exports.Certificate = function () {
   function Certificate(version, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, signature, publicKey, revocationKey) {
