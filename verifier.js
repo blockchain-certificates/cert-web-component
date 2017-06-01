@@ -14,10 +14,8 @@ var _certificateVersion = require('./certificateVersion');
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var GUID_REGEX = /[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}/;
-
 var Certificate = exports.Certificate = function () {
-  function Certificate(version, name, title, subtitle, description, certificateImage, signatureImage, sealImage, uid, issuer, receipt, signature, publicKey, revocationKey) {
+  function Certificate(version, name, title, subtitle, description, certificateImage, signatureImage, sealImage, id, issuer, receipt, signature, publicKey, revocationKey) {
     _classCallCheck(this, Certificate);
 
     this.version = version;
@@ -28,7 +26,7 @@ var Certificate = exports.Certificate = function () {
     this.certificateImage = certificateImage;
     this.signatureImage = signatureImage;
     this.sealImage = sealImage;
-    this.uid = uid;
+    this.id = id;
     this.issuer = issuer;
     this.receipt = receipt;
     this.signature = signature;
@@ -67,7 +65,7 @@ var Certificate = exports.Certificate = function () {
       if ((typeof subtitle === 'undefined' ? 'undefined' : _typeof(subtitle)) == "object") {
         subtitle = subtitle.display ? subtitle.content : "";
       }
-      var uid = assertion.uid;
+      var id = assertion.uid;
       var issuer = certificate.issuer;
       var receipt = certificateJson.receipt;
       var signature = certificateJson.document.signature;
@@ -81,7 +79,7 @@ var Certificate = exports.Certificate = function () {
         version = _certificateVersion.CertificateVersion.v1_2;
       }
 
-      return new Certificate(version, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, uid, issuer, receipt, signature, publicKey, revocationKey);
+      return new Certificate(version, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, id, issuer, receipt, signature, publicKey, revocationKey);
     }
   }, {
     key: 'parseV2',
@@ -103,12 +101,11 @@ var Certificate = exports.Certificate = function () {
       var sealImage = badge.issuer.image;
       var subtitle = badge.subtitle;
 
-      var matches = GUID_REGEX.exec(certificateJson.id);
-      var uid = matches[0];
+      var id = certificateJson.id;
       var issuer = badge.issuer;
       var receipt = certificateJson.signature;
       var publicKey = recipient.recipientProfile.publicKey;
-      return new Certificate(_certificateVersion.CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, uid, issuer, receipt, null, publicKey);
+      return new Certificate(_certificateVersion.CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, id, issuer, receipt, null, publicKey);
     }
   }, {
     key: 'parseJson',
@@ -252,7 +249,6 @@ var VError = require('verror');
 
 
 var SECURITY_CONTEXT_URL = "https://w3id.org/security/v1";
-var GUID_REGEX = /[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}/;
 
 var noop = function noop() {};
 
@@ -621,7 +617,7 @@ var CertificateVerifier = exports.CertificateVerifier = function () {
           var revocationKeys = responseData.revocationKeys || [];
           issuerKey = issuerKeys[0].key;
           revocationKey = revocationKeys[0].key;
-          if (!bitcoin.message.verify(issuerKey, _this4.certificate.signature, _this4.certificate.uid, getChainForAddress(issuerKey))) {
+          if (!bitcoin.message.verify(issuerKey, _this4.certificate.signature, _this4.certificate.id, getChainForAddress(issuerKey))) {
             // TODO: `Issuer key doesn't match derived address. Address: ${address}, Issuer Key: ${issuerKey}`
             var reason = "Issuer key doesn't match derived address.";
             return _this4._failed(completionCallback, reason, null);
@@ -664,12 +660,12 @@ var CertificateVerifier = exports.CertificateVerifier = function () {
           try {
             var responseData = JSON.parse(request.responseText);
             var revokedAddresses = responseData.revokedAssertions.map(function (output) {
-              return GUID_REGEX.exec(output.id)[0];
+              return output.id;
             });
             _this5._verificationState.revokedAddresses = revokedAddresses;
-            var recipientUid = _this5.certificate.uid;
-            var isRevokedByIssuer = -1 != revokedAddresses.findIndex(function (uid) {
-              return uid === recipientUid;
+            var assertionId = _this5.certificate.id;
+            var isRevokedByIssuer = -1 != revokedAddresses.findIndex(function (id) {
+              return id === assertionId;
             });
             if (isRevokedByIssuer) {
               var reason = "This certificate has been revoked by the issuer.";
@@ -770,7 +766,7 @@ function statusCallback(arg1) {
   console.log("status=" + arg1);
 }
 
-fs.readFile('../tests/sample_cert-with_v1_issuer-no_revocation_url-2.0.json', 'utf8', function (err, data) {
+fs.readFile('../tests/sample_cert-valid-2.0.json', 'utf8', function (err, data) {
   if (err) {
     console.log(err);
   }
