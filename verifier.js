@@ -24,8 +24,16 @@ var getChainForAddress = function getChainForAddress(publicKey) {
   }
 };
 
+var getNameForChain = function getNameForChain(chain) {
+  if (chain === bitcoin.networks.bitcoin) {
+    return 'bitcoin';
+  } else {
+    return 'testnet';
+  }
+};
+
 var Certificate = exports.Certificate = function () {
-  function Certificate(version, name, title, subtitle, description, certificateImage, signatureImage, sealImage, id, issuer, receipt, signature, publicKey, revocationKey, chain) {
+  function Certificate(version, name, title, subtitle, description, certificateImage, signatureImage, sealImage, id, issuer, receipt, signature, publicKey, revocationKey, chain, expires) {
     _classCallCheck(this, Certificate);
 
     this.version = version;
@@ -43,6 +51,8 @@ var Certificate = exports.Certificate = function () {
     this.publicKey = publicKey;
     this.revocationKey = revocationKey;
     this.chain = chain;
+    this.chainAsString = getNameForChain(chain);
+    this.expires = expires;
   }
 
   _createClass(Certificate, null, [{
@@ -56,6 +66,7 @@ var Certificate = exports.Certificate = function () {
       var title = certificate.title || certificate.name;
       var description = certificate.description;
       var signatureImage = certificateJson.document && certificateJson.document.assertion && certificateJson.document.assertion["image:signature"];
+      var expires = assertion.expires;
 
       var signatureImageObjects = [];
       if (signatureImage.constructor === Array) {
@@ -92,7 +103,7 @@ var Certificate = exports.Certificate = function () {
 
       var chain = getChainForAddress(publicKey);
 
-      return new Certificate(version, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, id, issuer, receipt, signature, publicKey, revocationKey, chain);
+      return new Certificate(version, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, id, issuer, receipt, signature, publicKey, revocationKey, chain, expires);
     }
   }, {
     key: 'parseV2',
@@ -103,6 +114,7 @@ var Certificate = exports.Certificate = function () {
       var name = recipient.recipientProfile.name;
       var title = badge.name;
       var description = badge.description;
+      var expires = certificateJson.expires;
 
       var signatureImageObjects = [];
       for (var index in badge.signatureLines) {
@@ -119,7 +131,7 @@ var Certificate = exports.Certificate = function () {
       var receipt = certificateJson.signature;
       var publicKey = recipient.recipientProfile.publicKey;
       var chain = getChainForAddress(certificateJson.verification.creator);
-      return new Certificate(_certificateVersion.CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, id, issuer, receipt, null, publicKey, null, chain);
+      return new Certificate(_certificateVersion.CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, id, issuer, receipt, null, publicKey, null, chain, expires);
     }
   }, {
     key: 'parseJson',
@@ -145,17 +157,19 @@ var SignatureImage = exports.SignatureImage = function SignatureImage(image, job
 };
 
 /*
+
 var fs = require('fs');
 
-fs.readFile('../tests/sample_cert-valid-2.0.json', 'utf8', function (err, data) {
+fs.readFile('../tests/data/sample_cert-valid-1.2.0.json', 'utf8', function (err, data) {
   if (err) {
     console.log(err);
   }
 
   let cert = Certificate.parseJson(JSON.parse(data));
-  console.log(cert.chain);
+  console.log(cert.chainAsString);
 
-});*/
+});
+*/
 
 },{"./certificateVersion":2,"bitcoinjs-lib":22}],2:[function(require,module,exports){
 "use strict";
@@ -233,6 +247,7 @@ var Status = exports.Status = {
   checkingIssuerSignature: "checkingIssuerSignature",
   checkingAuthenticity: "checkingAuthenticity",
   checkingRevokedStatus: "checkingRevokedStatus",
+  checkingExpiresDate: "checkingExpiresDate",
   success: "success",
   failure: "failure"
 };
@@ -716,7 +731,7 @@ var CertificateVerifier = exports.CertificateVerifier = function () {
               var reason = "This certificate has been revoked by the issuer.";
               return _this5._failed(completionCallback, reason, null);
             }
-            return _this5._succeed(completionCallback);
+            _this5._checkExpiryDate(completionCallback);
           } catch (e) {
             var reason = "Unable to parse JSON out of remote revocation data.";
             return _this5._failed(completionCallback, reason, e);
@@ -746,7 +761,24 @@ var CertificateVerifier = exports.CertificateVerifier = function () {
           return this._failed(completionCallback, reason, e);
         }
 
+        this._checkExpiryDate(completionCallback);
+      }
+    }
+  }, {
+    key: '_checkExpiryDate',
+    value: function _checkExpiryDate(completionCallback) {
+      this.statusCallback(_status.Status.checkingExpiresDate);
+
+      if (!this.certificate.expires) {
+        // expiry date not set, nothing to do
         return this._succeed(completionCallback);
+      }
+
+      var expiryDate = Date.parse(this.certificate.expires);
+
+      if (new Date() >= expiryDate) {
+        var reason = "This certificate has expired.";
+        return this._failed(completionCallback, reason, null);
       }
     }
 
@@ -812,7 +844,7 @@ function statusCallback(arg1) {
   console.log("status=" + arg1);
 }
 
-fs.readFile('../tests/sample_cert-valid-2.0.json', 'utf8', function (err, data) {
+fs.readFile('../tests/data/sample_cert-valid-2.0.json', 'utf8', function (err, data) {
   if (err) {
     console.log(err);
   }
