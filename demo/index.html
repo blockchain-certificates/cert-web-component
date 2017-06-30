@@ -20,7 +20,7 @@
     <h2>The &lt;blockchain-certificate&gt; element</h2>
     <div class="vertical-section-container centered">
       <h3>Basic blockchain-certificate demo - locally hosted file</h3>
-      <p>Here's how you can render a locally hosted certificate file.</p>
+      <p>Here's how you can render a locally hosted Blockcert.</p>
       <demo-snippet>
         <template>
           <blockchain-certificate href="./sample_signed_cert-valid-1.2.0.json"></blockchain-certificate>
@@ -30,22 +30,9 @@
     </div>
     <h2>The &lt;validate-certificate&gt; element</h2>
     <div class="vertical-section-container centered">
-      <h3>Basic validate-certificate demo - locally hosted file</h3>
-      <p>
-        You can provide a button that folks can use to validate the rendered
-        certificate. Doing so is as simple as wrapping your rendered certificate
-        in &lt;validate-certificate&gt; tags.
-      </p>
-      <demo-snippet>
-        <template>
-          <validate-certificate>
-            <blockchain-certificate href="./sample_signed_cert-valid-1.2.0.json"></blockchain-certificate>
-          </validate-certificate>
-        </template>
-      </demo-snippet>
 
-      <h3>V2 Preview - locally hosted valid certificate</h3>
-      <p>This is a preview of a valid V2 certificate file</p>
+      <h3>Locally hosted valid certificate</h3>
+      <p>This demonstrates verifying a locally-hosted Blockcert.</p>
       <demo-snippet>
         <template>
           <validate-certificate>
@@ -54,8 +41,8 @@
         </template>
       </demo-snippet>
 
-      <h3>V2 Preview - locally hosted revoked certificate</h3>
-      <p>This is a preview of a revoked V2 certificate file</p>
+      <h3>Locally hosted _revoked_ certificate</h3>
+      <p>This demonstrates the verification behavior if a Blockcert is revoked.</p>
       <demo-snippet>
         <template>
           <validate-certificate>

@@ -111,7 +111,9 @@ var Certificate = exports.Certificate = function () {
       var recipient = certificateJson.recipient;
       var badge = certificateJson.badge;
       var certificateImage = badge.image;
-      var name = recipient.recipientProfile.name;
+      // backcompat for alpha
+      var recipientProfile = certificateJson.recipientProfile || certificateJson.recipient.recipientProfile;
+      var name = recipientProfile.name;
       var title = badge.name;
       var description = badge.description;
       var expires = certificateJson.expires;
@@ -129,8 +131,10 @@ var Certificate = exports.Certificate = function () {
       var id = certificateJson.id;
       var issuer = badge.issuer;
       var receipt = certificateJson.signature;
-      var publicKey = recipient.recipientProfile.publicKey;
-      var chain = getChainForAddress(certificateJson.verification.creator);
+      var publicKey = recipientProfile.publicKey;
+      // backcompat for alpha
+      var issuerKey = certificateJson.verification.publicKey || certificateJson.verification.creator;
+      var chain = getChainForAddress(issuerKey);
       return new Certificate(_certificateVersion.CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, id, issuer, receipt, null, publicKey, null, chain, expires);
     }
   }, {
@@ -286,11 +290,15 @@ var OBI_CONTENT = "{\n  \"@context\": {\n    \"id\": \"@id\",\n    \"type\": \"@
 var OBI_CONTEXT = JSON.parse(OBI_CONTENT);
 var BLOCKCERTS_CONTENT = "{\n  \"@context\": {\n    \"id\": \"@id\",\n    \"type\": \"@type\",\n    \"bc\": \"https://w3id.org/blockcerts#\",\n    \"obi\": \"https://w3id.org/openbadges#\",\n    \"cp\": \"https://w3id.org/chainpoint#\",\n    \"schema\": \"http://schema.org/\",\n    \"sec\": \"https://w3id.org/security#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n    \n    \"MerkleProof2017\": \"sec:MerkleProof2017\",\n    \n    \"RecipientProfile\": \"bc:RecipientProfile\",\n    \"SignatureLine\": \"bc:SignatureLine\",\n    \"MerkleProofVerification2017\": \"bc:MerkleProofVerification2017\",\n    \n    \"recipientProfile\": \"bc:recipientProfile\",\n    \"signatureLines\": \"bc:signatureLines\",\n    \"introductionUrl\": { \"@id\": \"bc:introductionUrl\", \"@type\": \"@id\" },\n    \n    \"subtitle\": \"bc:subtitle\",\n    \n    \"jobTitle\": \"schema:jobTitle\",\n    \n    \"creator\": { \"@id\": \"dc:creator\", \"@type\": \"@id\" },\n    \"expires\": {\n      \"@id\": \"sec:expiration\",\n      \"@type\": \"xsd:dateTime\"\n    },\n    \"revoked\": {\n      \"@id\": \"sec:expiration\",\n      \"@type\": \"xsd:dateTime\"\n    },\n    \"CryptographicKey\": \"sec:Key\",\n    \"signature\": \"sec:signature\", \n    \n    \"verification\": \"bc:verification\",\n    \"publicKeys\": \"bc:publicKeys\",\n    \n    \"ChainpointSHA256v2\": \"cp:ChainpointSHA256v2\",\n    \"BTCOpReturn\": \"cp:BTCOpReturn\",\n    \"targetHash\": \"cp:targetHash\",\n    \"merkleRoot\": \"cp:merkleRoot\",\n    \"proof\": \"cp:proof\",\n    \"anchors\": \"cp:anchors\",\n    \"sourceId\": \"cp:sourceId\",\n    \"right\": \"cp:right\",\n    \"left\": \"cp:left\"\n  },\n  \"obi:validation\": [\n    {\n      \"obi:validatesType\": \"RecipientProfile\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0-alpha/recipientSchema.json\"\n    },\n    {\n      \"obi:validatesType\": \"SignatureLine\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0-alpha/signatureLineSchema.json\"\n    },\n    {\n      \"obi:validatesType\": \"MerkleProof2017\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0-alpha/merkleProof2017Schema.json\"\n    }\n  ]\n}\n";
 var BLOCKCERTS_CONTEXT = JSON.parse(BLOCKCERTS_CONTENT);
+var BLOCKCERTSV2_CONTENT = "{\n  \"@context\": {\n    \"id\": \"@id\",\n    \"type\": \"@type\",\n    \"bc\": \"https://w3id.org/blockcerts#\",\n    \"obi\": \"https://w3id.org/openbadges#\",\n    \"cp\": \"https://w3id.org/chainpoint#\",\n    \"schema\": \"http://schema.org/\",\n    \"sec\": \"https://w3id.org/security#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n    \n    \"MerkleProof2017\": \"sec:MerkleProof2017\",\n    \n    \"RecipientProfile\": \"bc:RecipientProfile\",\n    \"SignatureLine\": \"bc:SignatureLine\",\n    \"MerkleProofVerification2017\": \"bc:MerkleProofVerification2017\",\n    \n    \"recipientProfile\": \"bc:recipientProfile\",\n    \"signatureLines\": \"bc:signatureLines\",\n    \"introductionUrl\": { \"@id\": \"bc:introductionUrl\", \"@type\": \"@id\" },\n    \n    \"subtitle\": \"bc:subtitle\",\n    \n    \"jobTitle\": \"schema:jobTitle\",\n\n    \"expires\": {\n      \"@id\": \"sec:expiration\",\n      \"@type\": \"xsd:dateTime\"\n    },\n    \"revoked\": {\n      \"@id\": \"obi:revoked\",\n      \"@type\": \"xsd:boolean\"\n    },\n    \"CryptographicKey\": \"sec:Key\",\n    \"signature\": \"sec:signature\",\n    \"verification\": {\n      \"@id\": \"obi:verify\",\n      \"@type\": \"@id\"\n    },\n    \"publicKey\": {\n      \"@id\": \"sec:publicKey\",\n      \"@type\": \"@id\"\n    },\n\n    \"ChainpointSHA256v2\": \"cp:ChainpointSHA256v2\",\n    \"BTCOpReturn\": \"cp:BTCOpReturn\",\n    \"targetHash\": \"cp:targetHash\",\n    \"merkleRoot\": \"cp:merkleRoot\",\n    \"proof\": \"cp:proof\",\n    \"anchors\": \"cp:anchors\",\n    \"sourceId\": \"cp:sourceId\",\n    \"right\": \"cp:right\",\n    \"left\": \"cp:left\"\n  },\n  \"obi:validation\": [\n    {\n      \"obi:validatesType\": \"RecipientProfile\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0/recipientSchema.json\"\n    },\n    {\n      \"obi:validatesType\": \"SignatureLine\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0/signatureLineSchema.json\"\n    },\n    {\n      \"obi:validatesType\": \"MerkleProof2017\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0/merkleProof2017Schema.json\"\n    }\n  ]\n}\n";
+var BLOCKCERTSV2_CONTEXT = JSON.parse(BLOCKCERTSV2_CONTENT);
 
 // Preload contexts
 CONTEXTS["https://w3id.org/blockcerts/schema/2.0-alpha/context.json"] = BLOCKCERTS_CONTEXT;
 CONTEXTS["https://www.blockcerts.org/schema/2.0-alpha/context.json"] = BLOCKCERTS_CONTEXT;
+CONTEXTS["https://w3id.org/openbadges/v2"] = OBI_CONTEXT;
 CONTEXTS["https://openbadgespec.org/v2/context.json"] = OBI_CONTEXT;
+CONTEXTS["https://w3id.org/blockcerts/v2"] = BLOCKCERTSV2_CONTEXT;
 
 var noop = function noop() {};
 
@@ -626,13 +634,16 @@ var CertificateVerifier = exports.CertificateVerifier = function () {
 
           var keyMap = {};
           if ('@context' in responseData) {
-            var responseKeys = responseData.publicKeys;
+            // backcompat for v2 alpha
+            var responseKeys = responseData.publicKey || responseData.publicKeys;
             for (var i = 0; i < responseKeys.length; i++) {
               var key = responseKeys[i];
               var created = key.created || null;
               var revoked = key.revoked || null;
               var expires = key.expires || null;
-              var publicKey = key.publicKey.replace('ecdsa-koblitz-pubkey:', '');
+              // backcompat for v2 alpha
+              var publicKeyTemp = key.id || key.publicKey;
+              var publicKey = publicKeyTemp.replace('ecdsa-koblitz-pubkey:', '');
               var k = new Key(publicKey, created, revoked, expires);
               keyMap[k.publicKey] = k;
             }
@@ -870,7 +881,7 @@ function statusCallback(arg1) {
   console.log("status=" + arg1);
 }
 
-fs.readFile('../tests/data/certificate_fail.json', 'utf8', function (err, data) {
+fs.readFile('../tests/data/sample_cert-with-revoked-key-2.0.json', 'utf8', function (err, data) {
   if (err) {
     console.log(err);
   }
@@ -886,8 +897,7 @@ fs.readFile('../tests/data/certificate_fail.json', 'utf8', function (err, data) 
     }
   });
 
-});
-*/
+});*/
 
 },{"./certificate":1,"./certificateVersion":2,"./status":4,"bitcoinjs-lib":22,"jsonld":62,"path":63,"sha256":91,"verror":109,"xmlhttprequest":113}],6:[function(require,module,exports){
 (function (global){
