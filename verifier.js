@@ -1,4 +1,657 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Verifier = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+"use strict";
+
+var _ref;
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+var Status = {
+  computingLocalHash: "computingLocalHash",
+  fetchingRemoteHash: "fetchingRemoteHash",
+  comparingHashes: "comparingHashes",
+  checkingMerkleRoot: "checkingMerkleRoot",
+  checkingReceipt: "checkingReceipt",
+  checkingIssuerSignature: "checkingIssuerSignature",
+  checkingAuthenticity: "checkingAuthenticity",
+  checkingRevokedStatus: "checkingRevokedStatus",
+  checkingExpiresDate: "checkingExpiresDate",
+  success: "success",
+  failure: "failure",
+  mockSuccess: "mockSuccess"
+};
+
+var verboseMessageMap = {};
+verboseMessageMap[Status.computingLocalHash] = "Computing Local Hash";
+verboseMessageMap[Status.comparingHashes] = "Comparing Hashes";
+verboseMessageMap[Status.checkingMerkleRoot] = "Checking Merkle Root";
+verboseMessageMap[Status.checkingReceipt] = "Checking Receipt";
+verboseMessageMap[Status.checkingRevokedStatus] = "Checking Revoked Status";
+verboseMessageMap[Status.checkingAuthenticity] = "Checking Authenticity";
+verboseMessageMap[Status.checkingExpiresDate] = "Checking Expires Date";
+verboseMessageMap[Status.checkingIssuerSignature] = "Checking Issuer Signature";
+
+var getVerboseMessage = function getVerboseMessage(status) {
+  return verboseMessageMap[status];
+};
+
+module.exports = {
+  CertificateVersion: {
+    v1_1: "1.1",
+    v1_2: "1.2",
+    v2_0: "2.0"
+  },
+
+  Blockchain: {
+    bitcoin: "bitcoin",
+    testnet: "testnet",
+    mocknet: "mocknet"
+  },
+
+  SecurityContextUrl: "https://w3id.org/security/v1",
+
+  Url: {
+    blockCypherUrl: "https://api.blockcypher.com/v1/btc/main/txs/",
+    blockCypherTestUrl: "https://api.blockcypher.com/v1/btc/test3/txs/",
+    chainSoUrl: "https://chain.so/api/v2/get_tx/BTC/",
+    chainSoTestUrl: "https://chain.so/api/v2/get_tx/BTCTEST/"
+  },
+
+  Status: Status,
+  getVerboseMessage: getVerboseMessage,
+  // Minimum number of confirmations to consider a transaction valid. Recommended setting = 10
+  MininumConfirmations: 1,
+  // Minimum number of blockchain APIs to consult to compare transaction data consistency
+  MinimumBlockchainExplorers: 1,
+  // Try all blockchain explorers (even > MinimumBlockchainExplorers) to increase the chance of a successful query.
+  Race: false,
+
+  PublicKey: "ecdsa-koblitz-pubkey:1",
+
+  //TODO Fixes or read direct in files??
+  Contexts: {
+    obi: {
+      "@context": {
+        "id": "@id",
+        "type": "@type",
+
+        "extensions": "https://w3id.org/openbadges/extensions#",
+        "obi": "https://w3id.org/openbadges#",
+        "validation": "obi:validation",
+
+        "cred": "https://w3id.org/credentials#",
+        "dc": "http://purl.org/dc/terms/",
+        "schema": "http://schema.org/",
+        "sec": "https://w3id.org/security#",
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
+
+        "AlignmentObject": "schema:AlignmentObject",
+        "CryptographicKey": "sec:Key",
+        "Endorsement": "cred:Credential",
+
+        "Assertion": "obi:Assertion",
+        "BadgeClass": "obi:BadgeClass",
+        "Criteria": "obi:Criteria",
+        "Evidence": "obi:Evidence",
+        "Extension": "obi:Extension",
+        "FrameValidation": "obi:FrameValidation",
+        "IdentityObject": "obi:IdentityObject",
+        "Image": "obi:Image",
+        "HostedBadge": "obi:HostedBadge",
+        "hosted": "obi:HostedBadge",
+        "Issuer": "obi:Issuer",
+        "Profile": "obi:Profile",
+        "RevocationList": "obi:RevocationList",
+        "SignedBadge": "obi:SignedBadge",
+        "signed": "obi:SignedBadge",
+        "TypeValidation": "obi:TypeValidation",
+        "VerificationObject": "obi:VerificationObject",
+
+        "author": { "@id": "schema:author", "@type": "@id" },
+        "caption": { "@id": "schema:caption" },
+        "claim": { "@id": "cred:claim", "@type": "@id" },
+        "created": { "@id": "dc:created", "@type": "xsd:dateTime" },
+        "creator": { "@id": "dc:creator", "@type": "@id" },
+        "description": { "@id": "schema:description" },
+        "email": { "@id": "schema:email" },
+        "endorsement": { "@id": "cred:credential", "@type": "@id" },
+        "expires": { "@id": "sec:expiration", "@type": "xsd:dateTime" },
+        "genre": { "@id": "schema:genre" },
+        "image": { "@id": "schema:image", "@type": "@id" },
+        "name": { "@id": "schema:name" },
+        "owner": { "@id": "sec:owner", "@type": "@id" },
+        "publicKey": { "@id": "sec:publicKey", "@type": "@id" },
+        "publicKeyPem": { "@id": "sec:publicKeyPem" },
+        "related": { "@id": "dc:relation", "@type": "@id" },
+        "startsWith": { "@id": "http://purl.org/dqm-vocabulary/v1/dqm#startsWith" },
+        "tags": { "@id": "schema:keywords" },
+        "targetDescription": { "@id": "schema:targetDescription" },
+        "targetFramework": { "@id": "schema:targetFramework" },
+        "targetName": { "@id": "schema:targetName" },
+        "targetUrl": { "@id": "schema:targetUrl" },
+        "telephone": { "@id": "schema:telephone" },
+        "url": { "@id": "schema:url", "@type": "@id" },
+        "version": { "@id": "schema:version" },
+
+        "alignment": { "@id": "obi:alignment", "@type": "@id" },
+        "allowedOrigins": { "@id": "obi:allowedOrigins" },
+        "audience": { "@id": "obi:audience" },
+        "badge": { "@id": "obi:badge", "@type": "@id" },
+        "criteria": { "@id": "obi:criteria", "@type": "@id" },
+        "endorsementComment": { "@id": "obi:endorsementComment" },
+        "evidence": { "@id": "obi:evidence", "@type": "@id" },
+        "hashed": { "@id": "obi:hashed", "@type": "xsd:boolean" },
+        "identity": { "@id": "obi:identityHash" },
+        "issuedOn": { "@id": "obi:issueDate", "@type": "xsd:dateTime" },
+        "issuer": { "@id": "obi:issuer", "@type": "@id" },
+        "narrative": { "@id": "obi:narrative" },
+        "recipient": { "@id": "obi:recipient", "@type": "@id" },
+        "revocationList": { "@id": "obi:revocationList", "@type": "@id" },
+        "revocationReason": { "@id": "obi:revocationReason" },
+        "revoked": { "@id": "obi:revoked", "@type": "xsd:boolean" },
+        "revokedAssertions": { "@id": "obi:revoked" },
+        "salt": { "@id": "obi:salt" },
+        "targetCode": { "@id": "obi:targetCode" },
+        "uid": { "@id": "obi:uid" },
+        "validatesType": "obi:validatesType",
+        "validationFrame": "obi:validationFrame",
+        "validationSchema": "obi:validationSchema",
+        "verification": { "@id": "obi:verify", "@type": "@id" },
+        "verificationProperty": { "@id": "obi:verificationProperty" },
+        "verify": "verification"
+      }
+    },
+
+    blockcerts: {
+      "@context": {
+        "id": "@id",
+        "type": "@type",
+        "bc": "https://w3id.org/blockcerts#",
+        "obi": "https://w3id.org/openbadges#",
+        "cp": "https://w3id.org/chainpoint#",
+        "schema": "http://schema.org/",
+        "sec": "https://w3id.org/security#",
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
+
+        "MerkleProof2017": "sec:MerkleProof2017",
+
+        "RecipientProfile": "bc:RecipientProfile",
+        "SignatureLine": "bc:SignatureLine",
+        "MerkleProofVerification2017": "bc:MerkleProofVerification2017",
+
+        "recipientProfile": "bc:recipientProfile",
+        "signatureLines": "bc:signatureLines",
+        "introductionUrl": { "@id": "bc:introductionUrl", "@type": "@id" },
+
+        "subtitle": "bc:subtitle",
+
+        "jobTitle": "schema:jobTitle",
+
+        "creator": { "@id": "dc:creator", "@type": "@id" },
+        "expires": {
+          "@id": "sec:expiration",
+          "@type": "xsd:dateTime"
+        },
+        "revoked": {
+          "@id": "sec:expiration",
+          "@type": "xsd:dateTime"
+        },
+        "CryptographicKey": "sec:Key",
+        "signature": "sec:signature",
+
+        "verification": "bc:verification",
+        "publicKeys": "bc:publicKeys",
+
+        "ChainpointSHA256v2": "cp:ChainpointSHA256v2",
+        "BTCOpReturn": "cp:BTCOpReturn",
+        "targetHash": "cp:targetHash",
+        "merkleRoot": "cp:merkleRoot",
+        "proof": "cp:proof",
+        "anchors": "cp:anchors",
+        "sourceId": "cp:sourceId",
+        "right": "cp:right",
+        "left": "cp:left"
+      },
+      "obi:validation": [{
+        "obi:validatesType": "RecipientProfile",
+        "obi:validationSchema": "https://w3id.org/blockcerts/schema/2.0-alpha/recipientSchema.json"
+      }, {
+        "obi:validatesType": "SignatureLine",
+        "obi:validationSchema": "https://w3id.org/blockcerts/schema/2.0-alpha/signatureLineSchema.json"
+      }, {
+        "obi:validatesType": "MerkleProof2017",
+        "obi:validationSchema": "https://w3id.org/blockcerts/schema/2.0-alpha/merkleProof2017Schema.json"
+      }]
+    },
+
+    blockcertsv1_2: {
+      "@context": [(_ref = {
+        "id": "@id",
+        "type": "@type",
+        "bc": "https://w3id.org/blockcerts#",
+        "obi": "https://w3id.org/openbadges#",
+        "cp": "https://w3id.org/chainpoint#",
+        "extensions": "https://w3id.org/openbadges/extensions#",
+        "validation": "obi:validation",
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
+        "schema": "http://schema.org/",
+        "sec": "https://w3id.org/security#",
+        "Assertion": "bc:Assertion",
+        "Certificate": "bc:Certificate",
+        "Issuer": "bc:Issuer",
+        "BlockchainCertificate": "bc:BlockchainCertificate",
+        "CertificateDocument": "bc:CertificateDocument",
+        "issuer": {
+          "@id": "bc:issuer",
+          "@type": "@id"
+        },
+        "recipient": {
+          "@id": "bc:recipient",
+          "@type": "@id"
+        },
+        "blockchaincertificate": {
+          "@id": "bc:blockchaincertificate",
+          "@type": "@id"
+        },
+        "certificate": {
+          "@id": "bc:certificate",
+          "@type": "@id"
+        },
+        "document": {
+          "@id": "bc:document",
+          "@type": "@id"
+        },
+        "assertion": {
+          "@id": "bc:assertion",
+          "@type": "@id"
+        },
+        "verify": {
+          "@id": "bc:verify",
+          "@type": "@id"
+        }
+      }, _defineProperty(_ref, "recipient", {
+        "@id": "bc:recipient",
+        "@type": "@id"
+      }), _defineProperty(_ref, "receipt", {
+        "@id": "bc:receipt",
+        "@type": "@id"
+      }), _defineProperty(_ref, "publicKey", {
+        "@id": "bc:publicKey"
+      }), _defineProperty(_ref, "revocationKey", {
+        "@id": "bc:revocationKey"
+      }), _defineProperty(_ref, "image:signature", {
+        "@id": "bc:image:signature"
+      }), _defineProperty(_ref, "signature", {
+        "@id": "bc:signature"
+      }), _defineProperty(_ref, "familyName", {
+        "@id": "schema:familyName"
+      }), _defineProperty(_ref, "givenName", {
+        "@id": "schema:givenName"
+      }), _defineProperty(_ref, "jobTitle", {
+        "@id": "schema:jobTitle"
+      }), _defineProperty(_ref, "signer", {
+        "@id": "bc:signer",
+        "@type": "@id"
+      }), _defineProperty(_ref, "attribute-signed", {
+        "@id": "bc:attribute-signed"
+      }), _defineProperty(_ref, "ECDSA(secp256k1)", "bc:SignedBadge"), _defineProperty(_ref, "subtitle", {
+        "@id": "bc:subtitle"
+      }), _defineProperty(_ref, "email", "schema:email"), _defineProperty(_ref, "hashed", {
+        "@id": "obi:hashed",
+        "@type": "xsd:boolean"
+      }), _defineProperty(_ref, "image", {
+        "@id": "schema:image",
+        "@type": "@id"
+      }), _defineProperty(_ref, "salt", {
+        "@id": "obi:salt"
+      }), _defineProperty(_ref, "identity", {
+        "@id": "obi:identityHash"
+      }), _defineProperty(_ref, "issuedOn", {
+        "@id": "obi:issueDate",
+        "@type": "xsd:dateTime"
+      }), _defineProperty(_ref, "expires", {
+        "@id": "sec:expiration",
+        "@type": "xsd:dateTime"
+      }), _defineProperty(_ref, "evidence", {
+        "@id": "obi:evidence",
+        "@type": "@id"
+      }), _defineProperty(_ref, "criteria", {
+        "@id": "obi:criteria",
+        "@type": "@id"
+      }), _defineProperty(_ref, "tags", {
+        "@id": "schema:keywords"
+      }), _defineProperty(_ref, "alignment", {
+        "@id": "obi:alignment",
+        "@type": "@id"
+      }), _defineProperty(_ref, "revocationList", {
+        "@id": "obi:revocationList",
+        "@type": "@id"
+      }), _defineProperty(_ref, "name", {
+        "@id": "schema:name"
+      }), _defineProperty(_ref, "description", {
+        "@id": "schema:description"
+      }), _defineProperty(_ref, "url", {
+        "@id": "schema:url",
+        "@type": "@id"
+      }), _defineProperty(_ref, "uid", {
+        "@id": "obi:uid"
+      }), _defineProperty(_ref, "revocationList", "obi:revocationList"), _defineProperty(_ref, "TypeValidation", "obi:TypeValidation"), _defineProperty(_ref, "FrameValidation", "obi:FrameValidation"), _defineProperty(_ref, "validatesType", "obi:validatesType"), _defineProperty(_ref, "validationSchema", "obi:validationSchema"), _defineProperty(_ref, "validationFrame", "obi:validationFrame"), _defineProperty(_ref, "ChainpointSHA224v2", "cp:ChainpointSHA224v2"), _defineProperty(_ref, "ChainpointSHA256v2", "cp:ChainpointSHA256v2"), _defineProperty(_ref, "ChainpointSHA384v2", "cp:ChainpointSHA384v2"), _defineProperty(_ref, "ChainpointSHA512v2", "cp:ChainpointSHA512v2"), _defineProperty(_ref, "ChainpointSHA3-224v2", "cp:ChainpointSHA3-224v2"), _defineProperty(_ref, "ChainpointSHA3-256v2", "cp:ChainpointSHA3-256v2"), _defineProperty(_ref, "ChainpointSHA3-384v2", "cp:ChainpointSHA3-384v2"), _defineProperty(_ref, "ChainpointSHA3-512v2", "cp:ChainpointSHA3-512v2"), _defineProperty(_ref, "BTCOpReturn", "cp:BTCOpReturn"), _defineProperty(_ref, "targetHash", "cp:targetHash"), _defineProperty(_ref, "merkleRoot", "cp:merkleRoot"), _defineProperty(_ref, "proof", "cp:proof"), _defineProperty(_ref, "anchors", "cp:anchors"), _defineProperty(_ref, "sourceId", "cp:sourceId"), _defineProperty(_ref, "right", "cp:right"), _defineProperty(_ref, "left", "cp:left"), _ref)],
+      "validation": [{
+        "type": "TypeValidation",
+        "validatesType": "Assertion",
+        "validationSchema": "https://w3id.org/blockcerts/schema/1.2/assertion-1.2.json"
+      }, {
+        "type": "TypeValidation",
+        "validatesType": "Certificate",
+        "validationSchema": "https://w3id.org/blockcerts/schema/1.2/certificate-1.2.json"
+      }, {
+        "type": "TypeValidation",
+        "validatesType": "Issuer",
+        "validationSchema": "https://w3id.org/blockcerts/schema/1.2/issuer-1.2.json"
+      }, {
+        "type": "TypeValidation",
+        "validatesType": "CertificateDocument",
+        "validationSchema": "https://w3id.org/blockcerts/schema/1.2/certificate-document-1.2.json"
+      }, {
+        "type": "TypeValidation",
+        "validatesType": "BlockchainCertificate",
+        "validationSchema": "https://w3id.org/blockcerts/schema/1.2/blockchain-certificate-1.2.json"
+      }, {
+        "type": "TypeValidation",
+        "validatesType": "BlockchainReceipt",
+        "validationSchema": "https://w3id.org/blockcerts/schema/1.2/blockchain-receipt-1.2.json"
+      }]
+    },
+
+    blockcertsv2: {
+      "@context": {
+        "id": "@id",
+        "type": "@type",
+        "bc": "https://w3id.org/blockcerts#",
+        "obi": "https://w3id.org/openbadges#",
+        "cp": "https://w3id.org/chainpoint#",
+        "schema": "http://schema.org/",
+        "sec": "https://w3id.org/security#",
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
+
+        "MerkleProof2017": "sec:MerkleProof2017",
+
+        "RecipientProfile": "bc:RecipientProfile",
+        "SignatureLine": "bc:SignatureLine",
+        "MerkleProofVerification2017": "bc:MerkleProofVerification2017",
+
+        "recipientProfile": "bc:recipientProfile",
+        "signatureLines": "bc:signatureLines",
+        "introductionUrl": { "@id": "bc:introductionUrl", "@type": "@id" },
+
+        "subtitle": "bc:subtitle",
+
+        "jobTitle": "schema:jobTitle",
+
+        "expires": {
+          "@id": "sec:expiration",
+          "@type": "xsd:dateTime"
+        },
+        "revoked": {
+          "@id": "obi:revoked",
+          "@type": "xsd:boolean"
+        },
+        "CryptographicKey": "sec:Key",
+        "signature": "sec:signature",
+        "verification": {
+          "@id": "obi:verify",
+          "@type": "@id"
+        },
+        "publicKey": {
+          "@id": "sec:publicKey",
+          "@type": "@id"
+        },
+
+        "ChainpointSHA256v2": "cp:ChainpointSHA256v2",
+        "BTCOpReturn": "cp:BTCOpReturn",
+        "targetHash": "cp:targetHash",
+        "merkleRoot": "cp:merkleRoot",
+        "proof": "cp:proof",
+        "anchors": "cp:anchors",
+        "sourceId": "cp:sourceId",
+        "right": "cp:right",
+        "left": "cp:left"
+      },
+      "obi:validation": [{
+        "obi:validatesType": "RecipientProfile",
+        "obi:validationSchema": "https://w3id.org/blockcerts/schema/2.0/recipientSchema.json"
+      }, {
+        "obi:validatesType": "SignatureLine",
+        "obi:validationSchema": "https://w3id.org/blockcerts/schema/2.0/signatureLineSchema.json"
+      }, {
+        "obi:validatesType": "MerkleProof2017",
+        "obi:validationSchema": "https://w3id.org/blockcerts/schema/2.0/merkleProof2017Schema.json"
+      }]
+    }
+  }
+
+};
+
+},{}],2:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.lookForTx = lookForTx;
+
+var _debug = require('debug');
+
+var _debug2 = _interopRequireDefault(_debug);
+
+var _verror = require('verror');
+
+var _verror2 = _interopRequireDefault(_verror);
+
+var _verifierModels = require('./verifierModels');
+
+var _default = require('../config/default');
+
+var _promisifiedRequests = require('./promisifiedRequests');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var log = (0, _debug2.default)("bitcoinConnectors");
+
+require('string.prototype.startswith');
+
+var BlockchainExplorers = [function (transactionId, chain) {
+  return getBlockcypherFetcher(transactionId, chain);
+}, function (transactionId, chain) {
+  return getChainSoFetcher(transactionId, chain);
+}];
+
+// for legacy (pre-v2) Blockcerts
+var BlockchainExplorersWithSpentOutputInfo = [function (transactionId, chain) {
+  return getBlockcypherFetcher(transactionId, chain);
+}];
+
+function cleanupRemoteHash(remoteHash) {
+  var prefixes = ["6a20", "OP_RETURN "];
+  for (var i = 0; i < prefixes.length; i++) {
+    var prefix = prefixes[i];
+    if (remoteHash.startsWith(prefix)) {
+      return remoteHash.slice(prefix.length);
+    }
+  }
+  return remoteHash;
+};
+
+function getBlockcypherFetcher(transactionId, chain) {
+  var blockCypherUrl = void 0;
+  if (chain === _default.Blockchain.bitcoin) {
+    blockCypherUrl = _default.Url.blockCypherUrl + transactionId;
+  } else {
+    blockCypherUrl = _default.Url.blockCypherTestUrl + transactionId;
+  }
+  var blockcypherFetcher = new Promise(function (resolve, reject) {
+    return (0, _promisifiedRequests.request)({ url: blockCypherUrl }).then(function (response) {
+      var responseData = JSON.parse(response);
+      try {
+        var txData = parseBlockCypherResponse(responseData);
+        resolve(txData);
+      } catch (err) {
+        reject(new _verror2.default(err));
+      }
+    }).catch(function (err) {
+      reject(new _verror2.default(err));
+    });
+  });
+  return blockcypherFetcher;
+}
+
+function getChainSoFetcher(transactionId, chain) {
+  var chainSoUrl = void 0;
+  if (chain === _default.Blockchain.bitcoin) {
+    chainSoUrl = _default.Url.chainSoUrl + transactionId;
+  } else {
+    chainSoUrl = _default.Url.chainSoTestUrl + transactionId;
+  }
+
+  var chainSoFetcher = new Promise(function (resolve, reject) {
+    return (0, _promisifiedRequests.request)({ url: chainSoUrl }).then(function (response) {
+      var responseData = JSON.parse(response);
+      try {
+        var txData = parseChainSoResponse(responseData);
+        resolve(txData);
+      } catch (err) {
+        reject(new _verror2.default(err));
+      }
+    }).catch(function (err) {
+      reject(new _verror2.default(err));
+    });
+  });
+  return chainSoFetcher;
+}
+
+function parseBlockCypherResponse(jsonResponse) {
+  if (jsonResponse.confirmations < _default.MininumConfirmations) {
+    throw new _verror2.default("Number of transaction confirmations were less than the minimum required, according to Blockcypher API");
+  }
+  var time = Date.parse(jsonResponse.received);
+  var outputs = jsonResponse.outputs;
+  var lastOutput = outputs[outputs.length - 1];
+  var issuingAddress = jsonResponse.inputs[0].addresses[0];
+  var opReturnScript = cleanupRemoteHash(lastOutput.data_hex);
+  var revokedAddresses = outputs.filter(function (output) {
+    return !!output.spent_by;
+  }).map(function (output) {
+    return output.addresses[0];
+  });
+  return new _verifierModels.TransactionData(opReturnScript, issuingAddress, time, revokedAddresses);
+};
+
+function parseChainSoResponse(jsonResponse) {
+  if (jsonResponse.data.confirmations < _default.MininumConfirmations) {
+    throw new _verror2.default("Number of transaction confirmations were less than the minimum required, according to Chain.so API");
+  }
+  var time = new Date(jsonResponse.data.time * 1000);
+  var outputs = jsonResponse.data.outputs;
+  var lastOutput = outputs[outputs.length - 1];
+  var issuingAddress = jsonResponse.data.inputs[0].address;
+  var opReturnScript = cleanupRemoteHash(lastOutput.script);
+  // Legacy v1.2 verification notes:
+  // Chain.so requires that you lookup spent outputs per index, which would require potentially a lot of calls. However,
+  // this is only for v1.2 so we will allow connectors to omit revoked addresses. Blockcypher returns revoked addresses,
+  // and ideally we would provide at least 1 more connector to crosscheck the list of revoked addresses. There were very
+  // few v1.2 issuances, but you want to provide v1.2 verification with higher confidence (of cross-checking APIs), then
+  // you should consider adding an additional lookup to crosscheck revocation addresses.
+  return new _verifierModels.TransactionData(opReturnScript, issuingAddress, time, undefined);
+}
+
+function lookForTx(transactionId, chain, certificateVersion) {
+  // First ensure we can satisfy the MinimumBlockchainExplorers setting
+  if (_default.MinimumBlockchainExplorers < 0 || _default.MinimumBlockchainExplorers > BlockchainExplorers.length) {
+    return Promise.reject(new _verror2.default("Invalid application configuration; check the MinimumBlockchainExplorers configuration value"));
+  }
+  if (_default.MinimumBlockchainExplorers > BlockchainExplorersWithSpentOutputInfo.length && (certificateVersion == _default.CertificateVersion.v1_1 || certificateVersion == _default.CertificateVersion.v1_2)) {
+    return Promise.reject(new _verror2.default("Invalid application configuration; check the MinimumBlockchainExplorers configuration value"));
+  }
+
+  // Queue up blockchain explorer APIs
+  var promises = Array();
+  if (certificateVersion == _default.CertificateVersion.v1_1 || certificateVersion == _default.CertificateVersion.v1_2) {
+    var limit = _default.Race ? BlockchainExplorersWithSpentOutputInfo.length : _default.MinimumBlockchainExplorers;
+    for (var i = 0; i < limit; i++) {
+      promises.push(BlockchainExplorersWithSpentOutputInfo[i](transactionId, chain));
+    }
+  } else {
+    var limit = _default.Race ? BlockchainExplorers.length : _default.MinimumBlockchainExplorers;
+    for (var j = 0; j < limit; j++) {
+      promises.push(BlockchainExplorers[j](transactionId, chain));
+    }
+  }
+
+  return new Promise(function (resolve, reject) {
+    return Promise.properRace(promises, _default.MinimumBlockchainExplorers).then(function (winners) {
+      if (!winners || winners.length == 0) {
+        return Promise.reject(new _verror2.default("Could not confirm the transaction. No blockchain apis returned a response. This could be because of rate limiting."));
+      }
+
+      // Compare results returned by different blockchain apis. We pick off the first result and compare the others
+      // returned. The number of winners corresponds to the configuration setting `MinimumBlockchainExplorers`.
+      // We require that all results agree on `issuingAddress` and `remoteHash`. Not all blockchain apis return
+      // spent outputs (revoked addresses for <=v1.2), and we do not have enough coverage to compare this, but we do
+      // ensure that a TxData with revoked addresses is returned, for the rare case of legacy 1.2 certificates.
+      //
+      // Note that APIs returning results where the number of confirmations is less than `MininumConfirmations` are
+      // filtered out, but if there are at least `MinimumBlockchainExplorers` reporting that the number of confirmations
+      // are above the `MininumConfirmations` threshold, then we can proceed with verification.
+      var firstResponse = winners[0];
+      for (var i = 1; i < winners.length; i++) {
+        var thisResponse = winners[i];
+        if (firstResponse.issuingAddress !== thisResponse.issuingAddress) {
+          throw new _verror2.default("Issuing addresses returned by the blockchain APIs were different");
+        }
+        if (firstResponse.remoteHash !== thisResponse.remoteHash) {
+          throw new _verror2.default("Remote hashes returned by the blockchain APIs were different");
+        }
+      }
+      resolve(firstResponse);
+    }).catch(function (err) {
+      reject(new _verror2.default(err));
+    });
+  });
+}
+
+Promise.properRace = function (promises, count) {
+  var results = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
+
+  // Source: https://www.jcore.com/2016/12/18/promise-me-you-wont-use-promise-race/
+  promises = Array.from(promises);
+  if (promises.length < count) {
+    return Promise.reject(new _verror2.default("Could not confirm the transaction"));
+  }
+
+  var indexPromises = promises.map(function (p, index) {
+    return p.then(function () {
+      return index;
+    }).catch(function (err) {
+      log(err);
+      throw index;
+    });
+  });
+
+  return Promise.race(indexPromises).then(function (index) {
+    var p = promises.splice(index, 1)[0];
+    p.then(function (e) {
+      return results.push(e);
+    });
+    if (count === 1) {
+      return results;
+    }
+    return Promise.properRace(promises, count - 1, results);
+  }).catch(function (index) {
+    promises.splice(index, 1);
+    return Promise.properRace(promises, count, results);
+  });
+};
+
+},{"../config/default":1,"./promisifiedRequests":6,"./verifierModels":8,"debug":52,"string.prototype.startswith":102,"verror":115}],3:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10,26 +663,36 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _certificateVersion = require('./certificateVersion');
+var _default = require('../config/default');
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var bitcoin = require('bitcoinjs-lib');
+require('string.prototype.startswith');
 
-var getChainForAddress = function getChainForAddress(publicKey) {
-  if (publicKey.startsWith("1") || publicKey.startsWith("ecdsa-koblitz-pubkey:1")) {
-    return bitcoin.networks.bitcoin;
+var getChainForAddress = function getChainForAddress(bitcoinAddress) {
+  if (bitcoinAddress.startsWith("1") || bitcoinAddress.startsWith(_default.PublicKey)) {
+    return _default.Blockchain.bitcoin;
   } else {
-    return bitcoin.networks.testnet;
+    return _default.Blockchain.testnet;
+  }
+};
+
+var getChain = function getChain(signature, bitcoinAddress) {
+  var anchorType = signature.anchors[0].type;
+  if (anchorType == "BTCOpReturn") {
+    // From legacy versions, this may be either testnet or mainnet; detect from address
+    return getChainForAddress(bitcoinAddress);
+  } else if (anchorType == "XTNOpReturn") {
+    return _default.Blockchain.testnet;
+  } else if (anchorType == "MockOpReturn") {
+    return _default.Blockchain.mocknet;
+  } else {
+    return _default.Blockchain.mocknet;
   }
 };
 
 var getNameForChain = function getNameForChain(chain) {
-  if (chain === bitcoin.networks.bitcoin) {
-    return 'bitcoin';
-  } else {
-    return 'testnet';
-  }
+  return chain.toString();
 };
 
 var Certificate = exports.Certificate = function () {
@@ -96,9 +759,9 @@ var Certificate = exports.Certificate = function () {
 
       var version = void 0;
       if (typeof receipt === "undefined") {
-        version = _certificateVersion.CertificateVersion.v1_1;
+        version = _default.CertificateVersion.v1_1;
       } else {
-        version = _certificateVersion.CertificateVersion.v1_2;
+        version = _default.CertificateVersion.v1_2;
       }
 
       var chain = getChainForAddress(publicKey);
@@ -108,15 +771,22 @@ var Certificate = exports.Certificate = function () {
   }, {
     key: 'parseV2',
     value: function parseV2(certificateJson) {
-      var recipient = certificateJson.recipient;
-      var badge = certificateJson.badge;
-      var certificateImage = badge.image;
-      // backcompat for alpha
+      var id = certificateJson.id,
+          recipient = certificateJson.recipient,
+          expires = certificateJson.expires,
+          receipt = certificateJson.signature,
+          badge = certificateJson.badge;
+      var certificateImage = badge.image,
+          title = badge.name,
+          description = badge.description,
+          subtitle = badge.subtitle,
+          issuer = badge.issuer;
+
+      var issuerKey = certificateJson.verification.publicKey || certificateJson.verification.creator;
       var recipientProfile = certificateJson.recipientProfile || certificateJson.recipient.recipientProfile;
+      var sealImage = issuer.image;
+      var publicKey = recipientProfile.publicKey;
       var name = recipientProfile.name;
-      var title = badge.name;
-      var description = badge.description;
-      var expires = certificateJson.expires;
 
       var signatureImageObjects = [];
       for (var index in badge.signatureLines) {
@@ -125,17 +795,8 @@ var Certificate = exports.Certificate = function () {
         signatureImageObjects.push(signatureObject);
       }
 
-      var sealImage = badge.issuer.image;
-      var subtitle = badge.subtitle;
-
-      var id = certificateJson.id;
-      var issuer = badge.issuer;
-      var receipt = certificateJson.signature;
-      var publicKey = recipientProfile.publicKey;
-      // backcompat for alpha
-      var issuerKey = certificateJson.verification.publicKey || certificateJson.verification.creator;
-      var chain = getChainForAddress(issuerKey);
-      return new Certificate(_certificateVersion.CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, id, issuer, receipt, null, publicKey, null, chain, expires);
+      var chain = getChain(certificateJson.signature, issuerKey);
+      return new Certificate(_default.CertificateVersion.v2_0, name, title, subtitle, description, certificateImage, signatureImageObjects, sealImage, id, issuer, receipt, null, publicKey, null, chain, expires);
     }
   }, {
     key: 'parseJson',
@@ -160,39 +821,284 @@ var SignatureImage = exports.SignatureImage = function SignatureImage(image, job
   this.name = name;
 };
 
-/*
-
-var fs = require('fs');
-
-fs.readFile('../tests/data/sample_cert-valid-1.2.0.json', 'utf8', function (err, data) {
-  if (err) {
-    console.log(err);
-  }
-
-  let cert = Certificate.parseJson(JSON.parse(data));
-  console.log(cert.chainAsString);
-
-});
-*/
-
-},{"./certificateVersion":2,"bitcoinjs-lib":22}],2:[function(require,module,exports){
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-var CertificateVersion = exports.CertificateVersion = {
-  v1_1: "1.1",
-  v1_2: "1.2",
-  v2_0: "2.0"
-};
-
-},{}],3:[function(require,module,exports){
+},{"../config/default":1,"string.prototype.startswith":102}],4:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.ensureNotRevokedBySpentOutput = ensureNotRevokedBySpentOutput;
+exports.ensureNotRevokedByList = ensureNotRevokedByList;
+exports.ensureIssuerSignature = ensureIssuerSignature;
+exports.ensureHashesEqual = ensureHashesEqual;
+exports.ensureMerkleRootEqual = ensureMerkleRootEqual;
+exports.ensureValidIssuingKey = ensureValidIssuingKey;
+exports.ensureValidReceipt = ensureValidReceipt;
+exports.computeLocalHashV1_1 = computeLocalHashV1_1;
+exports.computeLocalHash = computeLocalHash;
+exports.ensureNotExpired = ensureNotExpired;
+
+var _bitcoinjsLib = require('bitcoinjs-lib');
+
+var _bitcoinjsLib2 = _interopRequireDefault(_bitcoinjsLib);
+
+var _jsonld = require('jsonld');
+
+var _jsonld2 = _interopRequireDefault(_jsonld);
+
+var _verror = require('verror');
+
+var _verror2 = _interopRequireDefault(_verror);
+
+var _debug = require('debug');
+
+var _debug2 = _interopRequireDefault(_debug);
+
+var _default = require('../config/default');
+
+var _promisifiedRequests = require('./promisifiedRequests');
+
+var _sha = require('sha256');
+
+var _sha2 = _interopRequireDefault(_sha);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var log = (0, _debug2.default)("checks");
+
+require('string.prototype.startswith');
+
+var OBI_CONTEXT = _default.Contexts.obi,
+    BLOCKCERTS_CONTEXT = _default.Contexts.blockcerts,
+    BLOCKCERTSV1_2_CONTEXT = _default.Contexts.blockcertsv1_2,
+    BLOCKCERTSV2_CONTEXT = _default.Contexts.blockcertsv2;
+
+var CONTEXTS = {};
+// Preload contexts
+CONTEXTS["https://w3id.org/blockcerts/schema/2.0-alpha/context.json"] = BLOCKCERTS_CONTEXT;
+CONTEXTS["https://www.blockcerts.org/schema/2.0-alpha/context.json"] = BLOCKCERTS_CONTEXT;
+CONTEXTS["https://w3id.org/openbadges/v2"] = OBI_CONTEXT;
+CONTEXTS["https://openbadgespec.org/v2/context.json"] = OBI_CONTEXT;
+CONTEXTS["https://w3id.org/blockcerts/v2"] = BLOCKCERTSV2_CONTEXT;
+CONTEXTS["https://w3id.org/blockcerts/v1"] = BLOCKCERTSV1_2_CONTEXT;
+
+function ensureNotRevokedBySpentOutput(revokedAddresses, issuerRevocationKey, recipientRevocationKey) {
+  var isRevokedByIssuer = -1 != revokedAddresses.findIndex(function (address) {
+    return address === issuerRevocationKey;
+  });
+  if (isRevokedByIssuer) {
+    throw new _verror2.default("This certificate batch has been revoked by the issuer.");
+  }
+  var isRevokedByRecipient = -1 != revokedAddresses.findIndex(function (address) {
+    return address === recipientRevocationKey;
+  });
+  if (isRevokedByRecipient) {
+    throw new _verror2.default("This recipient's certificate has been revoked.");
+  }
+}
+
+function ensureNotRevokedByList(revokedAssertions, assertionUid) {
+  if (!revokedAssertions) {
+    // nothing to do
+    return;
+  }
+  var revokedAddresses = revokedAssertions.map(function (output) {
+    return output.id;
+  });
+  var isRevokedByIssuer = -1 != revokedAddresses.findIndex(function (id) {
+    return id === assertionUid;
+  });
+  if (isRevokedByIssuer) {
+    throw new _verror2.default("This certificate has been revoked by the issuer.");
+  }
+}
+
+function ensureIssuerSignature(issuerKey, certificateUid, certificateSignature, chain) {
+  var bitcoinChain = chain === _default.Blockchain.bitcoin ? _bitcoinjsLib2.default.networks.bitcoin : _bitcoinjsLib2.default.networks.testnet;
+  if (!_bitcoinjsLib2.default.message.verify(issuerKey, certificateSignature, certificateUid, bitcoinChain)) {
+    throw new _verror2.default("Issuer key doesn't match derived address.");
+  }
+}
+
+function ensureHashesEqual(actual, expected) {
+  if (actual !== expected) {
+    throw new _verror2.default("Computed hash does not match remote hash");
+  }
+}
+
+function ensureMerkleRootEqual(merkleRoot, remoteHash) {
+  if (merkleRoot !== remoteHash) {
+    throw new _verror2.default("Merkle root does not match remote hash.");
+  }
+}
+
+function ensureValidIssuingKey(keyMap, txIssuingAddress, txTime) {
+  var validKey = false;
+  if (txIssuingAddress in keyMap) {
+    validKey = true;
+    var theKey = keyMap[txIssuingAddress];
+    if (theKey.created) {
+      validKey &= txTime >= theKey.created;
+    }
+    if (theKey.revoked) {
+      validKey &= txTime <= theKey.revoked;
+    }
+    if (theKey.expires) {
+      validKey &= txTime <= theKey.expires;
+    }
+  }
+  if (!validKey) {
+    throw new _verror2.default("Transaction occurred at time when issuing address was not considered valid.");
+  }
+};
+
+function ensureValidReceipt(receipt) {
+  var proofHash = receipt.targetHash;
+  var merkleRoot = receipt.merkleRoot;
+  try {
+    var proof = receipt.proof;
+    if (!!proof) {
+      for (var index in proof) {
+        var node = proof[index];
+        if (typeof node.left !== "undefined") {
+          var appendedBuffer = _toByteArray('' + node.left + proofHash);
+          proofHash = (0, _sha2.default)(appendedBuffer);
+        } else if (typeof node.right !== "undefined") {
+          var appendedBuffer = _toByteArray('' + proofHash + node.right);
+          proofHash = (0, _sha2.default)(appendedBuffer);
+        } else {
+          throw new _verror2.default("We should never get here.");
+        }
+      }
+    }
+  } catch (e) {
+    throw new _verror2.default("The receipt is malformed. There was a problem navigating the merkle tree in the receipt.");
+  }
+
+  if (proofHash !== merkleRoot) {
+    throw new _verror2.default("Invalid Merkle Receipt. Proof hash didn't match Merkle root");
+  }
+};
+
+function computeLocalHashV1_1(certificateString) {
+  // When getting the file over HTTP, we've seen an extra newline be appended. This removes that.
+  var correctedData = certificateString.slice(0, -1);
+  return (0, _sha2.default)(correctedData);
+};
+
+function computeLocalHash(document, version) {
+  var expandContext = document["@context"];
+  var theDocument = document;
+  if (version === _default.CertificateVersion.v2_0) {
+    expandContext.push({ "@vocab": "http://fallback.org/" });
+  }
+  var nodeDocumentLoader = _jsonld2.default.documentLoaders.node({ request: _promisifiedRequests.request });
+  var customLoader = function customLoader(url, callback) {
+    if (url in CONTEXTS) {
+      return callback(null, {
+        contextUrl: null,
+        document: CONTEXTS[url],
+        documentUrl: url
+      });
+    }
+    nodeDocumentLoader(url, callback);
+  };
+  _jsonld2.default.documentLoader = customLoader;
+
+  return new Promise(function (resolve, reject) {
+    _jsonld2.default.normalize(theDocument, {
+      algorithm: 'URDNA2015',
+      format: 'application/nquads',
+      expandContext: expandContext
+    }, function (err, normalized) {
+      if (!!err) {
+        reject(new _verror2.default(err, "Failed JSON-LD normalization"));
+      } else {
+        var unmappedFields = getUnmappedFields(normalized);
+        if (unmappedFields) {
+          reject(new _verror2.default("Found unmapped fields during JSON-LD normalization: " + unmappedFields.join(",")));
+        }
+        resolve((0, _sha2.default)(_toUTF8Data(normalized)));
+      }
+    });
+  });
+};
+
+function getUnmappedFields(normalized) {
+  var myRegexp = /<http:\/\/fallback\.org\/(.*)>/;
+  var matches = myRegexp.exec(normalized);
+  if (matches) {
+    var unmappedFields = Array();
+    for (var i = 0; i < matches.length; i++) {
+      unmappedFields.push(matches[i]);
+    }
+    return unmappedFields;
+  }
+  return null;
+};
+
+function ensureNotExpired(expires) {
+  if (!expires) {
+    return;
+  }
+  var expiryDate = Date.parse(expires);
+  if (new Date() >= expiryDate) {
+    throw new _verror2.default("This certificate has expired.");
+  }
+  // otherwise, it's fine
+}
+
+function _toByteArray(hexString) {
+  var outArray = [];
+  var byteSize = 2;
+  for (var i = 0; i < hexString.length; i += byteSize) {
+    outArray.push(parseInt(hexString.substring(i, i + byteSize), 16));
+  }
+  return outArray;
+};
+
+function _toUTF8Data(string) {
+  var utf8 = [];
+  for (var i = 0; i < string.length; i++) {
+    var charcode = string.charCodeAt(i);
+    if (charcode < 0x80) utf8.push(charcode);else if (charcode < 0x800) {
+      utf8.push(0xc0 | charcode >> 6, 0x80 | charcode & 0x3f);
+    } else if (charcode < 0xd800 || charcode >= 0xe000) {
+      utf8.push(0xe0 | charcode >> 12, 0x80 | charcode >> 6 & 0x3f, 0x80 | charcode & 0x3f);
+    }
+    // surrogate pair
+    else {
+        i++;
+        // UTF-16 encodes 0x10000-0x10FFFF by
+        // subtracting 0x10000 and splitting the
+        // 20 bits of 0x0-0xFFFFF into two halves
+        charcode = 0x10000 + ((charcode & 0x3ff) << 10 | string.charCodeAt(i) & 0x3ff);
+        utf8.push(0xf0 | charcode >> 18, 0x80 | charcode >> 12 & 0x3f, 0x80 | charcode >> 6 & 0x3f, 0x80 | charcode & 0x3f);
+      }
+  }
+  return utf8;
+};
+
+function _hexFromByteArray(byteArray) {
+  var out = "";
+  for (var i = 0; i < byteArray.length; ++i) {
+    var value = byteArray[i];
+    if (value < 16) {
+      out += "0" + value.toString(16);
+    } else {
+      out += value.toString(16);
+    }
+  }
+  return out;
+};
+
+},{"../config/default":1,"./promisifiedRequests":6,"bitcoinjs-lib":25,"debug":52,"jsonld":67,"sha256":96,"string.prototype.startswith":102,"verror":115}],5:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.CertificateVerifier = exports.SignatureImage = exports.Certificate = exports.Status = exports.CertificateVersion = exports.Blockchain = undefined;
 
 var _certificate = require('./certificate');
 
@@ -209,24 +1115,6 @@ Object.defineProperty(exports, 'SignatureImage', {
   }
 });
 
-var _certificateVersion = require('./certificateVersion');
-
-Object.defineProperty(exports, 'CertificateVersion', {
-  enumerable: true,
-  get: function get() {
-    return _certificateVersion.CertificateVersion;
-  }
-});
-
-var _status = require('./status');
-
-Object.defineProperty(exports, 'Status', {
-  enumerable: true,
-  get: function get() {
-    return _status.Status;
-  }
-});
-
 var _verifier = require('./verifier');
 
 Object.defineProperty(exports, 'CertificateVerifier', {
@@ -236,27 +1124,85 @@ Object.defineProperty(exports, 'CertificateVerifier', {
   }
 });
 
-},{"./certificate":1,"./certificateVersion":2,"./status":4,"./verifier":5}],4:[function(require,module,exports){
-"use strict";
+var _default = require('../config/default');
+
+exports.Blockchain = _default.Blockchain;
+exports.CertificateVersion = _default.CertificateVersion;
+exports.Status = _default.Status;
+
+},{"../config/default":1,"./certificate":3,"./verifier":7}],6:[function(require,module,exports){
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-var Status = exports.Status = {
-  computingLocalHash: "computingLocalHash",
-  fetchingRemoteHash: "fetchingRemoteHash",
-  comparingHashes: "comparingHashes",
-  checkingMerkleRoot: "checkingMerkleRoot",
-  checkingReceipt: "checkingReceipt",
-  checkingIssuerSignature: "checkingIssuerSignature",
-  checkingAuthenticity: "checkingAuthenticity",
-  checkingRevokedStatus: "checkingRevokedStatus",
-  checkingExpiresDate: "checkingExpiresDate",
-  success: "success",
-  failure: "failure"
+exports.request = request;
+exports.readFileAsync = readFileAsync;
+exports.readFile = readFile;
+
+var _fs = require('fs');
+
+var _fs2 = _interopRequireDefault(_fs);
+
+var _debug = require('debug');
+
+var _debug2 = _interopRequireDefault(_debug);
+
+var _verror = require('verror');
+
+var _verror2 = _interopRequireDefault(_verror);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+
+var log = (0, _debug2.default)("promisifiedRequests");
+function request(obj) {
+  return new Promise(function (resolve, reject) {
+    var url = obj.url;
+    var request = new XMLHttpRequest();
+
+    request.addEventListener('load', function () {
+      if (request.status >= 200 && request.status < 300) {
+        resolve(request.responseText);
+      } else {
+        var failureMessage = 'Error fetching url:' + url + '; status code:' + request.status;
+        log(failureMessage);
+        reject(new _verror2.default(failureMessage));
+      }
+    });
+    request.addEventListener('error', function () {
+      log('Request failed with error ' + request.status);
+      reject(new _verror2.default(request.status));
+    });
+
+    request.open(obj.method || "GET", url);
+    request.responseType = "json";
+    if (obj.body) {
+      request.send(JSON.stringify(obj.body));
+    } else {
+      request.send();
+    }
+  });
 };
 
-},{}],5:[function(require,module,exports){
+async function readFileAsync(path) {
+  return await readFile(path);
+}
+
+function readFile(path) {
+  return new Promise(function (resolve, reject) {
+    _fs2.default.readFile(path, 'utf8', function (err, data) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    });
+  });
+}
+
+},{"debug":52,"fs":35,"verror":115,"xmlhttprequest":119}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -264,116 +1210,45 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.CertificateVerifier = undefined;
 
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _status = require('./status');
+var _debug = require('debug');
+
+var _debug2 = _interopRequireDefault(_debug);
+
+var _verror = require('verror');
+
+var _verror2 = _interopRequireDefault(_verror);
 
 var _certificate = require('./certificate');
 
-var _certificateVersion = require('./certificateVersion');
+var _default = require('../config/default');
+
+var _promisifiedRequests = require('./promisifiedRequests');
+
+var _checks = require('./checks');
+
+var checks = _interopRequireWildcard(_checks);
+
+var _bitcoinConnectors = require('./bitcoinConnectors');
+
+var bitcoinConnectors = _interopRequireWildcard(_bitcoinConnectors);
+
+var _verifierModels = require('./verifierModels');
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var jsonld = require('jsonld');
-var sha256 = require('sha256');
-var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-var bitcoin = require('bitcoinjs-lib');
-var VError = require('verror');
+var log = (0, _debug2.default)("verifier");
 
-var path = require('path');
-
-
-var SECURITY_CONTEXT_URL = "https://w3id.org/security/v1";
-
-var CONTEXTS = {};
-var OBI_CONTENT = "{\n  \"@context\": {\n    \"id\": \"@id\",\n    \"type\": \"@type\",\n\n    \"extensions\": \"https://w3id.org/openbadges/extensions#\",\n    \"obi\": \"https://w3id.org/openbadges#\",\n    \"validation\": \"obi:validation\",\n\n    \"cred\": \"https://w3id.org/credentials#\",\n    \"dc\": \"http://purl.org/dc/terms/\",\n    \"schema\": \"http://schema.org/\",\n    \"sec\": \"https://w3id.org/security#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n\n    \"AlignmentObject\": \"schema:AlignmentObject\",\n    \"CryptographicKey\": \"sec:Key\",\n    \"Endorsement\": \"cred:Credential\",\n\n    \"Assertion\": \"obi:Assertion\",\n    \"BadgeClass\": \"obi:BadgeClass\",\n    \"Criteria\": \"obi:Criteria\",\n    \"Evidence\": \"obi:Evidence\",\n    \"Extension\": \"obi:Extension\",\n    \"FrameValidation\": \"obi:FrameValidation\",\n    \"IdentityObject\": \"obi:IdentityObject\",\n    \"Image\": \"obi:Image\",\n    \"HostedBadge\": \"obi:HostedBadge\",\n    \"hosted\": \"obi:HostedBadge\",\n    \"Issuer\": \"obi:Issuer\",\n    \"Profile\": \"obi:Profile\",\n    \"RevocationList\": \"obi:RevocationList\",\n    \"SignedBadge\": \"obi:SignedBadge\",\n    \"signed\": \"obi:SignedBadge\",\n    \"TypeValidation\": \"obi:TypeValidation\",\n    \"VerificationObject\": \"obi:VerificationObject\",\n\n    \"author\": { \"@id\": \"schema:author\", \"@type\": \"@id\" },\n    \"caption\": { \"@id\": \"schema:caption\" },\n    \"claim\": {\"@id\": \"cred:claim\", \"@type\": \"@id\"},\n    \"created\": { \"@id\": \"dc:created\", \"@type\": \"xsd:dateTime\" },\n    \"creator\": { \"@id\": \"dc:creator\", \"@type\": \"@id\" },\n    \"description\": { \"@id\": \"schema:description\" },\n    \"email\": { \"@id\": \"schema:email\" },\n    \"endorsement\": {\"@id\": \"cred:credential\", \"@type\": \"@id\"},\n    \"expires\": { \"@id\": \"sec:expiration\", \"@type\": \"xsd:dateTime\" },\n    \"genre\": { \"@id\": \"schema:genre\" },\n    \"image\": { \"@id\": \"schema:image\", \"@type\": \"@id\" },\n    \"name\": { \"@id\": \"schema:name\" },\n    \"owner\": {\"@id\": \"sec:owner\", \"@type\": \"@id\"},\n    \"publicKey\": { \"@id\": \"sec:publicKey\", \"@type\": \"@id\" },\n    \"publicKeyPem\": { \"@id\": \"sec:publicKeyPem\" },\n    \"related\": { \"@id\": \"dc:relation\", \"@type\": \"@id\" },\n    \"startsWith\": { \"@id\": \"http://purl.org/dqm-vocabulary/v1/dqm#startsWith\" },\n    \"tags\": { \"@id\": \"schema:keywords\" },\n    \"targetDescription\": { \"@id\": \"schema:targetDescription\" },\n    \"targetFramework\": { \"@id\": \"schema:targetFramework\" },\n    \"targetName\": { \"@id\": \"schema:targetName\" },\n    \"targetUrl\": { \"@id\": \"schema:targetUrl\" },\n    \"telephone\": { \"@id\": \"schema:telephone\" },\n    \"url\": { \"@id\": \"schema:url\", \"@type\": \"@id\" },\n    \"version\": { \"@id\": \"schema:version\" },\n\n    \"alignment\": { \"@id\": \"obi:alignment\", \"@type\": \"@id\" },\n    \"allowedOrigins\": { \"@id\": \"obi:allowedOrigins\" },\n    \"audience\": { \"@id\": \"obi:audience\" },\n    \"badge\": { \"@id\": \"obi:badge\", \"@type\": \"@id\" },\n    \"criteria\": { \"@id\": \"obi:criteria\", \"@type\": \"@id\" },\n    \"endorsementComment\": { \"@id\": \"obi:endorsementComment\" },\n    \"evidence\": { \"@id\": \"obi:evidence\", \"@type\": \"@id\" },\n    \"hashed\": { \"@id\": \"obi:hashed\", \"@type\": \"xsd:boolean\" },\n    \"identity\": { \"@id\": \"obi:identityHash\" },\n    \"issuedOn\": { \"@id\": \"obi:issueDate\", \"@type\": \"xsd:dateTime\" },\n    \"issuer\": { \"@id\": \"obi:issuer\", \"@type\": \"@id\" },\n    \"narrative\": { \"@id\": \"obi:narrative\" },\n    \"recipient\": { \"@id\": \"obi:recipient\", \"@type\": \"@id\" },\n    \"revocationList\": { \"@id\": \"obi:revocationList\", \"@type\": \"@id\" },\n    \"revocationReason\": { \"@id\": \"obi:revocationReason\" },\n    \"revoked\": { \"@id\": \"obi:revoked\", \"@type\": \"xsd:boolean\" },\n    \"revokedAssertions\": { \"@id\": \"obi:revoked\" },\n    \"salt\": { \"@id\": \"obi:salt\" },\n    \"targetCode\": { \"@id\": \"obi:targetCode\" },\n    \"uid\": { \"@id\": \"obi:uid\" },\n    \"validatesType\": \"obi:validatesType\",\n    \"validationFrame\": \"obi:validationFrame\",\n    \"validationSchema\": \"obi:validationSchema\",\n    \"verification\": { \"@id\": \"obi:verify\", \"@type\": \"@id\" },\n    \"verificationProperty\": { \"@id\": \"obi:verificationProperty\" },\n    \"verify\": \"verification\"\n  }\n}\n";
-var OBI_CONTEXT = JSON.parse(OBI_CONTENT);
-var BLOCKCERTS_CONTENT = "{\n  \"@context\": {\n    \"id\": \"@id\",\n    \"type\": \"@type\",\n    \"bc\": \"https://w3id.org/blockcerts#\",\n    \"obi\": \"https://w3id.org/openbadges#\",\n    \"cp\": \"https://w3id.org/chainpoint#\",\n    \"schema\": \"http://schema.org/\",\n    \"sec\": \"https://w3id.org/security#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n    \n    \"MerkleProof2017\": \"sec:MerkleProof2017\",\n    \n    \"RecipientProfile\": \"bc:RecipientProfile\",\n    \"SignatureLine\": \"bc:SignatureLine\",\n    \"MerkleProofVerification2017\": \"bc:MerkleProofVerification2017\",\n    \n    \"recipientProfile\": \"bc:recipientProfile\",\n    \"signatureLines\": \"bc:signatureLines\",\n    \"introductionUrl\": { \"@id\": \"bc:introductionUrl\", \"@type\": \"@id\" },\n    \n    \"subtitle\": \"bc:subtitle\",\n    \n    \"jobTitle\": \"schema:jobTitle\",\n    \n    \"creator\": { \"@id\": \"dc:creator\", \"@type\": \"@id\" },\n    \"expires\": {\n      \"@id\": \"sec:expiration\",\n      \"@type\": \"xsd:dateTime\"\n    },\n    \"revoked\": {\n      \"@id\": \"sec:expiration\",\n      \"@type\": \"xsd:dateTime\"\n    },\n    \"CryptographicKey\": \"sec:Key\",\n    \"signature\": \"sec:signature\", \n    \n    \"verification\": \"bc:verification\",\n    \"publicKeys\": \"bc:publicKeys\",\n    \n    \"ChainpointSHA256v2\": \"cp:ChainpointSHA256v2\",\n    \"BTCOpReturn\": \"cp:BTCOpReturn\",\n    \"targetHash\": \"cp:targetHash\",\n    \"merkleRoot\": \"cp:merkleRoot\",\n    \"proof\": \"cp:proof\",\n    \"anchors\": \"cp:anchors\",\n    \"sourceId\": \"cp:sourceId\",\n    \"right\": \"cp:right\",\n    \"left\": \"cp:left\"\n  },\n  \"obi:validation\": [\n    {\n      \"obi:validatesType\": \"RecipientProfile\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0-alpha/recipientSchema.json\"\n    },\n    {\n      \"obi:validatesType\": \"SignatureLine\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0-alpha/signatureLineSchema.json\"\n    },\n    {\n      \"obi:validatesType\": \"MerkleProof2017\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0-alpha/merkleProof2017Schema.json\"\n    }\n  ]\n}\n";
-var BLOCKCERTS_CONTEXT = JSON.parse(BLOCKCERTS_CONTENT);
-var BLOCKCERTSV2_CONTENT = "{\n  \"@context\": {\n    \"id\": \"@id\",\n    \"type\": \"@type\",\n    \"bc\": \"https://w3id.org/blockcerts#\",\n    \"obi\": \"https://w3id.org/openbadges#\",\n    \"cp\": \"https://w3id.org/chainpoint#\",\n    \"schema\": \"http://schema.org/\",\n    \"sec\": \"https://w3id.org/security#\",\n    \"xsd\": \"http://www.w3.org/2001/XMLSchema#\",\n    \n    \"MerkleProof2017\": \"sec:MerkleProof2017\",\n    \n    \"RecipientProfile\": \"bc:RecipientProfile\",\n    \"SignatureLine\": \"bc:SignatureLine\",\n    \"MerkleProofVerification2017\": \"bc:MerkleProofVerification2017\",\n    \n    \"recipientProfile\": \"bc:recipientProfile\",\n    \"signatureLines\": \"bc:signatureLines\",\n    \"introductionUrl\": { \"@id\": \"bc:introductionUrl\", \"@type\": \"@id\" },\n    \n    \"subtitle\": \"bc:subtitle\",\n    \n    \"jobTitle\": \"schema:jobTitle\",\n\n    \"expires\": {\n      \"@id\": \"sec:expiration\",\n      \"@type\": \"xsd:dateTime\"\n    },\n    \"revoked\": {\n      \"@id\": \"obi:revoked\",\n      \"@type\": \"xsd:boolean\"\n    },\n    \"CryptographicKey\": \"sec:Key\",\n    \"signature\": \"sec:signature\",\n    \"verification\": {\n      \"@id\": \"obi:verify\",\n      \"@type\": \"@id\"\n    },\n    \"publicKey\": {\n      \"@id\": \"sec:publicKey\",\n      \"@type\": \"@id\"\n    },\n\n    \"ChainpointSHA256v2\": \"cp:ChainpointSHA256v2\",\n    \"BTCOpReturn\": \"cp:BTCOpReturn\",\n    \"targetHash\": \"cp:targetHash\",\n    \"merkleRoot\": \"cp:merkleRoot\",\n    \"proof\": \"cp:proof\",\n    \"anchors\": \"cp:anchors\",\n    \"sourceId\": \"cp:sourceId\",\n    \"right\": \"cp:right\",\n    \"left\": \"cp:left\"\n  },\n  \"obi:validation\": [\n    {\n      \"obi:validatesType\": \"RecipientProfile\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0/recipientSchema.json\"\n    },\n    {\n      \"obi:validatesType\": \"SignatureLine\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0/signatureLineSchema.json\"\n    },\n    {\n      \"obi:validatesType\": \"MerkleProof2017\",\n      \"obi:validationSchema\": \"https://w3id.org/blockcerts/schema/2.0/merkleProof2017Schema.json\"\n    }\n  ]\n}\n";
-var BLOCKCERTSV2_CONTEXT = JSON.parse(BLOCKCERTSV2_CONTENT);
-
-// Preload contexts
-CONTEXTS["https://w3id.org/blockcerts/schema/2.0-alpha/context.json"] = BLOCKCERTS_CONTEXT;
-CONTEXTS["https://www.blockcerts.org/schema/2.0-alpha/context.json"] = BLOCKCERTS_CONTEXT;
-CONTEXTS["https://w3id.org/openbadges/v2"] = OBI_CONTEXT;
-CONTEXTS["https://openbadgespec.org/v2/context.json"] = OBI_CONTEXT;
-CONTEXTS["https://w3id.org/blockcerts/v2"] = BLOCKCERTSV2_CONTEXT;
+require('string.prototype.startswith');
 
 var noop = function noop() {};
-
-var getTxUrlsAndParsers = function getTxUrlsAndParsers(transactionId, chain) {
-  var blockCypherUrl = void 0;
-  if (chain === bitcoin.networks.bitcoin) {
-    blockCypherUrl = "https://api.blockcypher.com/v1/btc/main/txs/" + transactionId + "?limit=500";
-  } else {
-    blockCypherUrl = "https://api.blockcypher.com/v1/btc/test3/txs/" + transactionId + "?limit=500";
-  }
-  var blockCypherHandler = {
-    url: blockCypherUrl,
-    parser: parseBlockCypherResponse
-  };
-
-  var blockrIoUrl = void 0;
-  if (chain === bitcoin.networks.bitcoin) {
-    blockrIoUrl = "https://btc.blockr.io/api/v1/tx/info/" + transactionId;
-  } else {
-    blockrIoUrl = "https://tbtc.blockr.io/api/v1/tx/info/" + transactionId;
-  }
-  var blockrIoHandler = {
-    url: blockrIoUrl,
-    parser: parseBlockrIoResponse
-  };
-
-  return [blockCypherHandler, blockrIoHandler];
-};
-
-var TransactionData = function TransactionData(remoteHash, issuingAddress, time, revokedAddresses) {
-  _classCallCheck(this, TransactionData);
-
-  this.remoteHash = remoteHash;
-  this.issuingAddress = issuingAddress;
-  this.time = time;
-  this.revokedAddresses = revokedAddresses;
-};
-
-var Key = function Key(publicKey, created, revoked, expires) {
-  _classCallCheck(this, Key);
-
-  this.publicKey = publicKey;
-  this.created = created;
-  this.revoked = revoked;
-  this.expires = expires;
-};
-
-var parseBlockCypherResponse = function parseBlockCypherResponse(jsonResponse) {
-  var time = jsonResponse.received;
-  var outputs = jsonResponse.outputs;
-  var lastOutput = outputs[outputs.length - 1];
-  var issuingAddress = jsonResponse.inputs[0].addresses[0];
-  var opReturnScript = lastOutput.data_hex;
-  var revokedAddresses = outputs.filter(function (output) {
-    return !!output.spent_by;
-  }).map(function (output) {
-    return output.addresses[0];
-  });
-  return new TransactionData(opReturnScript, issuingAddress, time, revokedAddresses);
-};
-
-var parseBlockrIoResponse = function parseBlockrIoResponse(jsonResponse) {
-  var time = jsonResponse.data.time_utc;
-  var outputs = jsonResponse.data.vouts;
-  var lastOutput = outputs[outputs.length - 1];
-  var issuingAddress = jsonResponse.data.vins[0].address;
-
-  var opReturnScript = lastOutput.extras.script.substr(4); // remove first 4 chars
-  var revokedAddresses = outputs.filter(function (output) {
-    return output.is_spent != null && output.is_spent == 49;
-  }).map(function (output) {
-    return output.address;
-  });
-  return new TransactionData(opReturnScript, issuingAddress, time, revokedAddresses);
-};
 
 var CertificateVerifier = exports.CertificateVerifier = function () {
   function CertificateVerifier(certificateString, statusCallback) {
@@ -384,7 +1259,6 @@ var CertificateVerifier = exports.CertificateVerifier = function () {
 
     var document = certificateJson.document;
     if (!document) {
-      this.documentWithSignature = certificateJson;
       var certCopy = JSON.parse(certificateString);
       delete certCopy["signature"];
       document = certCopy;
@@ -398,508 +1272,311 @@ var CertificateVerifier = exports.CertificateVerifier = function () {
   _createClass(CertificateVerifier, [{
     key: '_succeed',
     value: function _succeed(completionCallback) {
-      this.statusCallback(_status.Status.success);
-      return completionCallback(null, _status.Status.success);
+      if (this.certificate.chain === _default.Blockchain.mocknet) {
+        log("This mock Blockcert passed all checks. Mocknet mode is only used for issuers to test their workflow locally. This Blockcert was not recorded on a blockchain, and it should not be considered a verified Blockcert.");
+        this.statusCallback(_default.Status.mockSuccess);
+        return _default.Status.mockSuccess;
+      } else {
+        log("success");
+        this.statusCallback(_default.Status.success);
+        return _default.Status.success;
+      }
     }
   }, {
     key: '_failed',
-    value: function _failed(completionCallback, reason, err) {
-      this.statusCallback(_status.Status.failure, reason);
-      var e;
-      if (err) {
-        e = new VError(err, reason);
-      } else {
-        e = new VError(reason);
-      }
-      return completionCallback(e, reason);
+    value: function _failed(completionCallback, err) {
+      log('failure:' + err.message);
+      this.statusCallback(_default.Status.failure, err.message);
+      throw new _verror2.default(err);
     }
   }, {
-    key: '_lookForTx',
-    value: function _lookForTx(index, items, completionCallback) {
+    key: 'doAction',
+    value: function doAction(status, action) {
+      log((0, _default.getVerboseMessage)(status));
+      this.statusCallback(status);
+      return action();
+    }
+  }, {
+    key: 'doAsyncAction',
+    value: async function doAsyncAction(status, action) {
+      log((0, _default.getVerboseMessage)(status));
+      this.statusCallback(status);
+      return await action();
+    }
+  }, {
+    key: 'getTransactionId',
+    value: function getTransactionId() {
+      var transactionId = void 0;
+      try {
+        transactionId = this.certificate.receipt.anchors[0].sourceId;
+        return transactionId;
+      } catch (e) {
+        throw new _verror2.default("Can't verify this certificate without a transaction ID to compare against.");
+      }
+    }
+  }, {
+    key: 'verifyV1_2',
+    value: async function verifyV1_2() {
       var _this = this;
 
-      if (index >= items.length) {
-        return this._failed(completionCallback, 'Could not fetch or parse remote transaction data');
-      }
-      var item = items[index];
-      var request = new XMLHttpRequest();
-      request.addEventListener('load', function () {
-        var status = request.status;
-        if (status != 200) {
-          // try next handler
-          return _this._lookForTx(index + 1, items, completionCallback);
-        }
-        try {
-          var responseData = JSON.parse(request.responseText);
-          var txData = item.parser(responseData);
-          _this._verificationState.remoteHash = txData.remoteHash;
-          _this._verificationState.revokedAddresses = txData.revokedAddresses;
-          _this._verificationState.txIssuingAddress = txData.issuingAddress;
-          _this._verificationState.time = txData.time;
-          return _this._compareHashes(completionCallback);
-        } catch (e) {
-          // try next handler
-          return _this._lookForTx(index + 1, items, completionCallback);
-        }
+      var transactionId = this.getTransactionId();
+      var docToVerify = this.document;
+
+      var localHash = await this.doAsyncAction(_default.Status.computingLocalHash, async function () {
+        return checks.computeLocalHash(docToVerify, _this.certificate.version);
       });
-      request.open('GET', item.url);
-      request.responseType = "json";
-      request.send();
+
+      var _ref = await Promise.all([bitcoinConnectors.lookForTx(transactionId, this.certificate.chain, this.certificate.version), (0, _verifierModels.getIssuerProfile)(this.certificate.issuer.id)]),
+          _ref2 = _slicedToArray(_ref, 2),
+          txData = _ref2[0],
+          issuerProfileJson = _ref2[1];
+
+      var issuerKeyMap = (0, _verifierModels.parseIssuerKeys)(issuerProfileJson);
+
+      this.doAction(_default.Status.comparingHashes, function () {
+        return checks.ensureHashesEqual(localHash, _this.certificate.receipt.targetHash);
+      });
+      this.doAction(_default.Status.checkingMerkleRoot, function () {
+        return checks.ensureMerkleRootEqual(_this.certificate.receipt.merkleRoot, txData.remoteHash);
+      });
+      this.doAction(_default.Status.checkingReceipt, function () {
+        return checks.ensureValidReceipt(_this.certificate.receipt);
+      });
+      this.doAction(_default.Status.checkingRevokedStatus, function () {
+        return checks.ensureNotRevokedBySpentOutput(txData.revokedAddresses, (0, _verifierModels.parseRevocationKey)(issuerProfileJson), _this.certificate.revocationKey);
+      });
+      this.doAction(_default.Status.checkingAuthenticity, function () {
+        return checks.ensureValidIssuingKey(issuerKeyMap, txData.issuingAddress, txData.time);
+      });
+      this.doAction(_default.Status.checkingExpiresDate, function () {
+        return checks.ensureNotExpired(_this.certificate.expires);
+      });
+    }
+  }, {
+    key: 'verifyV2',
+    value: async function verifyV2() {
+      var _this2 = this;
+
+      var transactionId = this.getTransactionId();
+      var docToVerify = this.document;
+
+      var localHash = await this.doAsyncAction(_default.Status.computingLocalHash, async function () {
+        return checks.computeLocalHash(docToVerify, _this2.certificate.version);
+      });
+
+      var _ref3 = await Promise.all([bitcoinConnectors.lookForTx(transactionId, this.certificate.chain), (0, _verifierModels.getIssuerKeys)(this.certificate.issuer.id), (0, _verifierModels.getRevocationList)(this.certificate.issuer.revocationList)]),
+          _ref4 = _slicedToArray(_ref3, 3),
+          txData = _ref4[0],
+          issuerKeyMap = _ref4[1],
+          issuerRevocationJson = _ref4[2];
+
+      this.doAction(_default.Status.comparingHashes, function () {
+        return checks.ensureHashesEqual(localHash, _this2.certificate.receipt.targetHash);
+      });
+      this.doAction(_default.Status.checkingMerkleRoot, function () {
+        return checks.ensureMerkleRootEqual(_this2.certificate.receipt.merkleRoot, txData.remoteHash);
+      });
+      this.doAction(_default.Status.checkingReceipt, function () {
+        return checks.ensureValidReceipt(_this2.certificate.receipt);
+      });
+      this.doAction(_default.Status.checkingRevokedStatus, function () {
+        return checks.ensureNotRevokedByList(issuerRevocationJson.revokedAssertions, _this2.certificate.id);
+      });
+      this.doAction(_default.Status.checkingAuthenticity, function () {
+        return checks.ensureValidIssuingKey(issuerKeyMap, txData.issuingAddress, txData.time);
+      });
+      this.doAction(_default.Status.checkingExpiresDate, function () {
+        return checks.ensureNotExpired(_this2.certificate.expires);
+      });
+    }
+  }, {
+    key: 'verifyV2Mock',
+    value: async function verifyV2Mock() {
+      var _this3 = this;
+
+      var docToVerify = this.document;
+      var localHash = await this.doAsyncAction(_default.Status.computingLocalHash, async function () {
+        return checks.computeLocalHash(docToVerify, _this3.certificate.version);
+      });
+
+      this.doAction(_default.Status.comparingHashes, function () {
+        return checks.ensureHashesEqual(localHash, _this3.certificate.receipt.targetHash);
+      });
+      this.doAction(_default.Status.checkingReceipt, function () {
+        return checks.ensureValidReceipt(_this3.certificate.receipt);
+      });
+      this.doAction(_default.Status.checkingExpiresDate, function () {
+        return checks.ensureNotExpired(_this3.certificate.expires);
+      });
     }
   }, {
     key: 'verify',
-    value: function verify(completionCallback) {
+    value: async function verify(completionCallback) {
+      if (this.certificate.version == _default.CertificateVersion.v1_1) {
+        throw new _verror2.default("Verification of 1.1 certificates is not supported by this component. See the python cert-verifier for legacy verification");
+      }
       completionCallback = completionCallback || noop;
-      this._verificationState = {};
-      this._computeLocalHash(completionCallback);
-    }
-  }, {
-    key: '_computeLocalHash',
-    value: function _computeLocalHash(completionCallback) {
-      var _this2 = this;
-
-      this.statusCallback(_status.Status.computingLocalHash);
-
-      if (this.certificate.version === _certificateVersion.CertificateVersion.v1_1) {
-        // When getting the file over HTTP, we've seen an extra newline be appended. This removes that.
-        var correctedData = this.certificateString.slice(0, -1);
-        this._verificationState.localHash = sha256(correctedData);
-        this._fetchRemoteHash();
-      } else {
-        var expandContext = this.document["@context"];
-        var theDocument = this.document;
-        if (this.certificate.version === _certificateVersion.CertificateVersion.v2_0) {
-          expandContext.push({ "@vocab": "http://fallback.org/" });
-        }
-
-        var nodeDocumentLoader = jsonld.documentLoaders.node();
-        var customLoader = function customLoader(url, callback) {
-          if (url in CONTEXTS) {
-            return callback(null, {
-              contextUrl: null,
-              document: CONTEXTS[url],
-              documentUrl: url
-            });
-          }
-          nodeDocumentLoader(url, callback);
-        };
-        jsonld.documentLoader = customLoader;
-        jsonld.normalize(theDocument, {
-          algorithm: 'URDNA2015',
-          format: 'application/nquads',
-          expandContext: expandContext
-        }, function (err, normalized) {
-          if (!!err) {
-            var reason = "Failed JSON-LD normalization";
-            return _this2._failed(completionCallback, reason, err);
-          } else {
-
-            var myRegexp = /<http:\/\/fallback\.org\/(.*)>/;
-            var matches = myRegexp.exec(normalized);
-            if (matches) {
-              var unmappedFields = Array();
-              for (var i = 0; i < matches.length; i++) {
-                unmappedFields.push(matches[i]);
-              }
-              var reason = "Found unmapped fields during JSON-LD normalization: " + unmappedFields.join(",");
-              return _this2._failed(completionCallback, reason, err);
-            }
-            _this2._verificationState.normalized = normalized;
-            _this2._verificationState.localHash = sha256(_this2._toUTF8Data(normalized));
-            _this2._fetchRemoteHash(completionCallback);
-          }
-        });
-      }
-    }
-  }, {
-    key: '_fetchRemoteHash',
-    value: function _fetchRemoteHash(completionCallback) {
-      this.statusCallback(_status.Status.fetchingRemoteHash);
-
-      var transactionID;
       try {
-        var receipt = this.certificate.receipt;
-        transactionID = receipt.anchors[0].sourceId;
-      } catch (e) {
-        var reason = "Can't verify this certificate without a transaction ID to compare against.";
-        return this._failed(completionCallback, reason, e);
-      }
-
-      var chain = this.certificate.chain;
-      this._verificationState.chain = chain;
-      var handlers = getTxUrlsAndParsers(transactionID, chain);
-
-      return this._lookForTx(0, handlers, completionCallback);
-    }
-  }, {
-    key: '_compareHashes',
-    value: function _compareHashes(completionCallback) {
-      this.statusCallback(_status.Status.comparingHashes);
-      var compareToHash = "";
-
-      if (this.certificate.version === _certificateVersion.CertificateVersion.v1_1) {
-        var prefix = "6a20";
-        var remoteHash = this._verificationState.remoteHash;
-        if (remoteHash.startsWith(prefix)) {
-          remoteHash = remoteHash.slice(prefix.length);
-        }
-        compareToHash = remoteHash;
-      } else {
-        compareToHash = this.certificate.receipt.targetHash;
-      }
-
-      if (this._verificationState.localHash !== compareToHash) {
-        var reason = "Local hash does not match remote hash";
-        return this._failed(completionCallback, reason, null);
-      }
-
-      if (this.certificate.version === _certificateVersion.CertificateVersion.v1_1) {
-        this._checkIssuerSignature(completionCallback);
-      } else {
-        this._checkMerkleRoot(completionCallback);
-      }
-    }
-  }, {
-    key: '_checkMerkleRoot',
-    value: function _checkMerkleRoot(completionCallback) {
-      this.statusCallback(_status.Status.checkingMerkleRoot);
-
-      var merkleRoot = this.certificate.receipt.merkleRoot;
-
-      var remoteHash = this._verificationState.remoteHash;
-      if (merkleRoot !== remoteHash) {
-        var reason = "Merkle root does not match remote hash.";
-        return this._failed(completionCallback, reason, null);
-      }
-      this._checkReceipt(completionCallback);
-    }
-  }, {
-    key: '_checkReceipt',
-    value: function _checkReceipt(completionCallback) {
-      this.statusCallback(_status.Status.checkingReceipt);
-
-      var receipt = this.certificate.receipt;
-      var proofHash = receipt.targetHash;
-      var merkleRoot = receipt.merkleRoot;
-      try {
-        var proof = receipt.proof;
-        if (!!proof) {
-          for (var index in proof) {
-            var node = proof[index];
-            if (typeof node.left !== "undefined") {
-              var appendedBuffer = this._toByteArray('' + node.left + proofHash);
-              proofHash = sha256(appendedBuffer);
-            } else if (typeof node.right !== "undefined") {
-              var appendedBuffer = this._toByteArray('' + proofHash + node.right);
-              proofHash = sha256(appendedBuffer);
-            } else {
-              throw new Error("We should never get here.");
-            }
-          }
-        }
-      } catch (e) {
-        var reason = "The receipt is malformed. There was a problem navigating the merkle tree in the receipt.";
-        return this._failed(completionCallback, reason, e);
-      }
-
-      if (proofHash !== merkleRoot) {
-        var reason = "Invalid Merkle Receipt. Proof hash didn't match Merkle root";
-        return this._failed(completionCallback, reason, null);
-      }
-
-      if (this.certificate.version == _certificateVersion.CertificateVersion.v2_0) {
-        // in v2 we don't check the issuer signature, and we check authenticity
-        this._checkAuthenticity(completionCallback);
-      } else {
-        this._checkIssuerSignature(completionCallback);
-      }
-    }
-  }, {
-    key: '_checkAuthenticity',
-    value: function _checkAuthenticity(completionCallback) {
-      var _this3 = this;
-
-      this.statusCallback(_status.Status.checkingAuthenticity);
-
-      var issuer = this.certificate.issuer;
-      var issuerURL = issuer.id;
-      var request = new XMLHttpRequest();
-      request.addEventListener('load', function () {
-        if (request.status !== 200) {
-          var reason = "Got unexpected response when trying to get remote issuer data; " + request.status;
-          return _this3._failed(completionCallback, reason, null);
-        }
-        try {
-          var responseData = JSON.parse(request.responseText);
-
-          var keyMap = {};
-          if ('@context' in responseData) {
-            // backcompat for v2 alpha
-            var responseKeys = responseData.publicKey || responseData.publicKeys;
-            for (var i = 0; i < responseKeys.length; i++) {
-              var key = responseKeys[i];
-              var created = key.created || null;
-              var revoked = key.revoked || null;
-              var expires = key.expires || null;
-              // backcompat for v2 alpha
-              var publicKeyTemp = key.id || key.publicKey;
-              var publicKey = publicKeyTemp.replace('ecdsa-koblitz-pubkey:', '');
-              var k = new Key(publicKey, created, revoked, expires);
-              keyMap[k.publicKey] = k;
-            }
-          } else {
-            // This is a v2 certificate with a v1 issuer
-            var issuerKeys = responseData.issuerKeys || [];
-            var issuerKey = issuerKeys[0].key;
-            var k = new Key(issuerKey, null, null, null);
-            keyMap[k.publicKey] = k;
-          }
-
-          var txAddress = _this3._verificationState.txIssuingAddress;
-          var txTime = _this3._verificationState.time;
-          var validKey = false;
-          if (txAddress in keyMap) {
-            validKey = true;
-            var theKey = keyMap[txAddress];
-            _this3._verificationState.issuerKey = txAddress;
-            if (theKey.created) {
-              validKey &= txTime >= key.created;
-            }
-            if (theKey.revoked) {
-              validKey &= txTime <= key.revoked;
-            }
-            if (theKey.expires) {
-              validKey &= txTime <= key.expires;
-            }
-          }
-
-          if (!validKey) {
-            return _this3._failed(completionCallback, "Transaction occurred at time when issuing address was not considered valid.", null);
-          }
-
-          _this3._checkRevokedStatus(completionCallback);
-        } catch (e) {
-          var reason = "Unable to parse JSON out of issuer identification data.";
-          return _this3._failed(completionCallback, reason, e);
-        }
-      });
-      request.addEventListener('error', function () {
-        console.log(request.status);
-        return _this3._failed(completionCallback, "Error requesting issuer identification.", null);
-      });
-
-      request.open('GET', issuerURL);
-      request.send();
-    }
-  }, {
-    key: '_checkIssuerSignature',
-    value: function _checkIssuerSignature(completionCallback) {
-      var _this4 = this;
-
-      this.statusCallback(_status.Status.checkingIssuerSignature);
-
-      var issuer = this.certificate.issuer;
-      var issuerURL = issuer.id;
-      var request = new XMLHttpRequest();
-      request.addEventListener('load', function () {
-        if (request.status !== 200) {
-          var reason = "Got unexpected response when trying to get remote transaction data; " + request.status;
-          return _this4._failed(completionCallback, reason, null);
-        }
-        try {
-          var responseData = JSON.parse(request.responseText);
-          var issuerKey = void 0;
-          var revocationKey = null;
-
-          var issuerKeys = responseData.issuerKeys || [];
-          var revocationKeys = responseData.revocationKeys || [];
-          issuerKey = issuerKeys[0].key;
-          revocationKey = revocationKeys[0].key;
-          if (!bitcoin.message.verify(issuerKey, _this4.certificate.signature, _this4.certificate.id, _this4.certificate.chain)) {
-            // TODO: `Issuer key doesn't match derived address. Address: ${address}, Issuer Key: ${issuerKey}`
-            var reason = "Issuer key doesn't match derived address.";
-            return _this4._failed(completionCallback, reason, null);
-          }
-          _this4._verificationState.issuerKey = issuerKey;
-          _this4._verificationState.revocationKey = revocationKey;
-          _this4._checkRevokedStatus(completionCallback);
-        } catch (e) {
-          var reason = "Unable to parse JSON out of issuer signature data.";
-          return _this4._failed(completionCallback, reason, e);
-        }
-      });
-      request.addEventListener('error', function () {
-        return _this4._failed(completionCallback, "Error requesting issuer signature.", null);
-      });
-
-      request.open('GET', issuerURL);
-      request.send();
-    }
-  }, {
-    key: '_checkRevokedStatus',
-    value: function _checkRevokedStatus(completionCallback) {
-      var _this5 = this;
-
-      this.statusCallback(_status.Status.checkingRevokedStatus);
-
-      if (this.certificate.version == _certificateVersion.CertificateVersion.v2_0) {
-        if (!this.certificate.issuer.revocationList) {
-          // nothing to do
-          return this._succeed(completionCallback);
-        }
-
-        var request = new XMLHttpRequest();
-        request.addEventListener('load', function () {
-          var status = request.status;
-          if (status != 200) {
-            var reason = "Got unexpected response when trying to get remote revocation data; " + status;
-            return _this5._failed(completionCallback, reason);
-          }
-          try {
-            var responseData = JSON.parse(request.responseText);
-            var revokedAddresses = responseData.revokedAssertions.map(function (output) {
-              return output.id;
-            });
-            _this5._verificationState.revokedAddresses = revokedAddresses;
-            var assertionId = _this5.certificate.id;
-            var isRevokedByIssuer = -1 != revokedAddresses.findIndex(function (id) {
-              return id === assertionId;
-            });
-            if (isRevokedByIssuer) {
-              var reason = "This certificate has been revoked by the issuer.";
-              return _this5._failed(completionCallback, reason, null);
-            }
-            _this5._checkExpiryDate(completionCallback);
-          } catch (e) {
-            var reason = "Unable to parse JSON out of remote revocation data.";
-            return _this5._failed(completionCallback, reason, e);
-          }
-        });
-        var url = this.certificate.issuer.revocationList;
-        request.open('GET', url);
-        request.responseType = "json";
-        request.send();
-      } else {
-        var revokedAddresses = this._verificationState.revokedAddresses;
-        var revocationKey = this._verificationState.revocationKey;
-        var isRevokedByIssuer = -1 != revokedAddresses.findIndex(function (address) {
-          return address === revocationKey;
-        });
-        if (isRevokedByIssuer) {
-          var reason = "This certificate batch has been revoked by the issuer.";
-          return this._failed(completionCallback, reason, e);
-        }
-
-        revocationKey = this.certificate.revocationKey;
-        var isRevokedByRecipient = -1 != revokedAddresses.findIndex(function (address) {
-          return address === revocationKey;
-        });
-        if (isRevokedByRecipient) {
-          var reason = "This recipient's certificate has been revoked.";
-          return this._failed(completionCallback, reason, e);
-        }
-
-        this._checkExpiryDate(completionCallback);
-      }
-    }
-  }, {
-    key: '_checkExpiryDate',
-    value: function _checkExpiryDate(completionCallback) {
-      this.statusCallback(_status.Status.checkingExpiresDate);
-
-      if (!this.certificate.expires) {
-        // expiry date not set, nothing to do
-        return this._succeed(completionCallback);
-      }
-
-      var expiryDate = Date.parse(this.certificate.expires);
-
-      if (new Date() >= expiryDate) {
-        var reason = "This certificate has expired.";
-        return this._failed(completionCallback, reason, null);
-      }
-
-      return this._succeed(completionCallback);
-    }
-
-    // Helper functions
-
-  }, {
-    key: '_toUTF8Data',
-    value: function _toUTF8Data(string) {
-      var utf8 = [];
-      for (var i = 0; i < string.length; i++) {
-        var charcode = string.charCodeAt(i);
-        if (charcode < 0x80) utf8.push(charcode);else if (charcode < 0x800) {
-          utf8.push(0xc0 | charcode >> 6, 0x80 | charcode & 0x3f);
-        } else if (charcode < 0xd800 || charcode >= 0xe000) {
-          utf8.push(0xe0 | charcode >> 12, 0x80 | charcode >> 6 & 0x3f, 0x80 | charcode & 0x3f);
-        }
-        // surrogate pair
-        else {
-            i++;
-            // UTF-16 encodes 0x10000-0x10FFFF by
-            // subtracting 0x10000 and splitting the
-            // 20 bits of 0x0-0xFFFFF into two halves
-            charcode = 0x10000 + ((charcode & 0x3ff) << 10 | string.charCodeAt(i) & 0x3ff);
-            utf8.push(0xf0 | charcode >> 18, 0x80 | charcode >> 12 & 0x3f, 0x80 | charcode >> 6 & 0x3f, 0x80 | charcode & 0x3f);
-          }
-      }
-      return utf8;
-    }
-  }, {
-    key: '_toByteArray',
-    value: function _toByteArray(hexString) {
-      var outArray = [];
-      var byteSize = 2;
-      for (var i = 0; i < hexString.length; i += byteSize) {
-        outArray.push(parseInt(hexString.substring(i, i + byteSize), 16));
-      }
-      return outArray;
-    }
-  }, {
-    key: '_hexFromByteArray',
-    value: function _hexFromByteArray(byteArray) {
-      var out = "";
-      for (var i = 0; i < byteArray.length; ++i) {
-        var value = byteArray[i];
-        if (value < 16) {
-          out += "0" + value.toString(16);
+        if (this.certificate.version == _default.CertificateVersion.v1_2) {
+          await this.verifyV1_2();
+        } else if (this.certificate.chain == _default.Blockchain.mocknet) {
+          await this.verifyV2Mock();
         } else {
-          out += value.toString(16);
+          await this.verifyV2();
         }
+
+        return this._succeed(completionCallback);
+      } catch (e) {
+        return this._failed(completionCallback, e);
       }
-      return out;
     }
   }]);
 
   return CertificateVerifier;
 }();
 
-/*
 function statusCallback(arg1) {
-  console.log("status=" + arg1);
+  console.log('status: ' + arg1);
 }
 
-fs.readFile('../tests/data/sample_cert-with-revoked-key-2.0.json', 'utf8', function (err, data) {
-  if (err) {
-    console.log(err);
+async function test() {
+  try {
+    //var data = await readFileAsync('../tests/data/sample_cert-valid-2.0.json');
+    //var data = await readFileAsync('../tests/data/sample_cert-valid-1.2.0.json');
+    var certVerifier = new CertificateVerifier(data, statusCallback);
+    certVerifier.verify().then(function (x) {
+      return console.log('final result: ' + x);
+    }).catch(function (e) {
+      return console.error('failed: ' + e);
+    });
+  } catch (err) {
+    console.error('Failed!');
+    console.error(err);
   }
-  var certVerifier = new CertificateVerifier(data, statusCallback);
+}
 
-  certVerifier.verify(function (err, data) {
-    if (err) {
-      console.log("failed");
-      console.log(data);
-      //console.log(err);
+//test();
+
+},{"../config/default":1,"./bitcoinConnectors":2,"./certificate":3,"./checks":4,"./promisifiedRequests":6,"./verifierModels":8,"debug":52,"string.prototype.startswith":102,"verror":115}],8:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.Key = exports.TransactionData = undefined;
+exports.parseIssuerKeys = parseIssuerKeys;
+exports.parseRevocationKey = parseRevocationKey;
+exports.getIssuerProfile = getIssuerProfile;
+exports.getIssuerKeys = getIssuerKeys;
+exports.getRevocationList = getRevocationList;
+
+var _promisifiedRequests = require('./promisifiedRequests');
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var TransactionData = exports.TransactionData = function TransactionData(remoteHash, issuingAddress, time, revokedAddresses) {
+  _classCallCheck(this, TransactionData);
+
+  this.remoteHash = remoteHash;
+  this.issuingAddress = issuingAddress;
+  this.time = time;
+  this.revokedAddresses = revokedAddresses;
+};
+
+var Key = exports.Key = function Key(publicKey, created, revoked, expires) {
+  _classCallCheck(this, Key);
+
+  this.publicKey = publicKey;
+  this.created = created;
+  this.revoked = revoked;
+  this.expires = expires;
+};
+
+function parseIssuerKeys(issuerProfileJson) {
+  try {
+    var keyMap = {};
+    if ('@context' in issuerProfileJson) {
+      // backcompat for v2 alpha
+      var responseKeys = issuerProfileJson.publicKey || issuerProfileJson.publicKeys;
+      for (var i = 0; i < responseKeys.length; i++) {
+        var key = responseKeys[i];
+        var created = key.created ? Date.parse(key.created) : null;
+        var revoked = key.revoked ? Date.parse(key.revoked) : null;
+        var expires = key.expires ? Date.parse(key.expires) : null;
+        // backcompat for v2 alpha
+        var publicKeyTemp = key.id || key.publicKey;
+        var publicKey = publicKeyTemp.replace('ecdsa-koblitz-pubkey:', '');
+        var k = new Key(publicKey, created, revoked, expires);
+        keyMap[k.publicKey] = k;
+      }
     } else {
-      console.log("done");
+      // This is a v2 certificate with a v1 issuer
+      var issuerKeys = issuerProfileJson.issuerKeys || [];
+      var issuerKey = issuerKeys[0].key;
+      var k = new Key(issuerKey, null, null, null);
+      keyMap[k.publicKey] = k;
     }
+    return keyMap;
+  } catch (e) {
+    throw new VError(e, "Unable to parse JSON out of issuer identification data.");
+  }
+};
+
+function parseRevocationKey(issuerProfileJson) {
+  var revocationKeys = issuerProfileJson.revocationKeys || [];
+  var revocationKey = revocationKeys[0].key;
+  return revocationKey;
+}
+
+function getIssuerProfile(issuerId) {
+  var issuerProfileFetcher = new Promise(function (resolve, reject) {
+    return (0, _promisifiedRequests.request)({ url: issuerId }).then(function (response) {
+      try {
+        var issuerProfileJson = JSON.parse(response);
+        resolve(issuerProfileJson);
+      } catch (err) {
+        reject(new VError(err));
+      }
+    }).catch(function (err) {
+      reject(new VError(err));
+    });
   });
+  return issuerProfileFetcher;
+}
 
-});*/
+function getIssuerKeys(issuerId) {
+  var issuerKeyFetcher = new Promise(function (resolve, reject) {
+    return getIssuerProfile(issuerId).then(function (issuerProfileJson) {
+      try {
+        var issuerKeyMap = parseIssuerKeys(issuerProfileJson);
+        resolve(issuerKeyMap);
+      } catch (err) {
+        reject(new VError(err));
+      }
+    }).catch(function (err) {
+      reject(new VError(err));
+    });
+  });
+  return issuerKeyFetcher;
+}
 
-},{"./certificate":1,"./certificateVersion":2,"./status":4,"bitcoinjs-lib":22,"jsonld":62,"path":63,"sha256":91,"verror":109,"xmlhttprequest":113}],6:[function(require,module,exports){
+function getRevocationList(revocationListUrl) {
+  var revocationListFetcher = new Promise(function (resolve, reject) {
+    return (0, _promisifiedRequests.request)({ url: revocationListUrl }).then(function (response) {
+      try {
+        var revocationListJson = JSON.parse(response);
+        resolve(revocationListJson);
+      } catch (err) {
+        reject(new VError(err));
+      }
+    }).catch(function (err) {
+      reject(new VError(err));
+    });
+  });
+  return revocationListFetcher;
+}
+
+},{"./promisifiedRequests":6}],9:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1393,7 +2070,7 @@ var objectKeys = Object.keys || function (obj) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"util/":108}],7:[function(require,module,exports){
+},{"util/":114}],10:[function(require,module,exports){
 // base-x encoding
 // Forked from https://github.com/cryptocoinjs/bs58
 // Originally written by Mike Hearn for BitcoinJ
@@ -1481,7 +2158,7 @@ module.exports = function base (ALPHABET) {
   }
 }
 
-},{}],8:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -1597,7 +2274,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],9:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 // (public) Constructor
 function BigInteger(a, b, c) {
   if (!(this instanceof BigInteger))
@@ -3108,7 +3785,7 @@ BigInteger.valueOf = nbv
 
 module.exports = BigInteger
 
-},{"../package.json":12}],10:[function(require,module,exports){
+},{"../package.json":15}],13:[function(require,module,exports){
 (function (Buffer){
 // FIXME: Kind of a weird way to throw exceptions, consider removing
 var assert = require('assert')
@@ -3203,14 +3880,14 @@ BigInteger.prototype.toHex = function(size) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./bigi":9,"assert":6,"buffer":39}],11:[function(require,module,exports){
+},{"./bigi":12,"assert":9,"buffer":42}],14:[function(require,module,exports){
 var BigInteger = require('./bigi')
 
 //addons
 require('./convert')
 
 module.exports = BigInteger
-},{"./bigi":9,"./convert":10}],12:[function(require,module,exports){
+},{"./bigi":12,"./convert":13}],15:[function(require,module,exports){
 module.exports={
   "_args": [
     [
@@ -3345,7 +4022,7 @@ module.exports={
   "version": "1.4.2"
 }
 
-},{}],13:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (Buffer){
 // Reference https://github.com/bitcoin/bips/blob/master/bip-0066.mediawiki
 // Format: 0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S]
@@ -3460,7 +4137,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":39}],14:[function(require,module,exports){
+},{"buffer":42}],17:[function(require,module,exports){
 (function (Buffer){
 var bs58check = require('bs58check')
 var bscript = require('./script')
@@ -3516,7 +4193,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./networks":24,"./script":26,"./types":30,"bs58check":34,"buffer":39,"typeforce":101}],15:[function(require,module,exports){
+},{"./networks":27,"./script":29,"./types":33,"bs58check":37,"buffer":42,"typeforce":107}],18:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('create-hash')
 var bufferutils = require('./bufferutils')
@@ -3693,7 +4370,7 @@ Block.prototype.checkProofOfWork = function () {
 module.exports = Block
 
 }).call(this,require("buffer").Buffer)
-},{"./bufferutils":16,"./crypto":17,"./transaction":28,"buffer":39,"buffer-compare":35,"buffer-reverse":37,"create-hash":45}],16:[function(require,module,exports){
+},{"./bufferutils":19,"./crypto":20,"./transaction":31,"buffer":42,"buffer-compare":38,"buffer-reverse":40,"create-hash":48}],19:[function(require,module,exports){
 (function (Buffer){
 var opcodes = require('./opcodes.json')
 
@@ -3879,7 +4556,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./opcodes.json":25,"buffer":39,"buffer-equals":36,"buffer-reverse":37}],17:[function(require,module,exports){
+},{"./opcodes.json":28,"buffer":42,"buffer-equals":39,"buffer-reverse":40}],20:[function(require,module,exports){
 var createHash = require('create-hash')
 
 function hash160 (buffer) {
@@ -3910,7 +4587,7 @@ module.exports = {
   sha256: sha256
 }
 
-},{"create-hash":45}],18:[function(require,module,exports){
+},{"create-hash":48}],21:[function(require,module,exports){
 (function (Buffer){
 var createHmac = require('create-hmac')
 var typeforce = require('typeforce')
@@ -4163,7 +4840,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./ecsignature":20,"./types":30,"bigi":11,"buffer":39,"create-hmac":48,"ecurve":51,"typeforce":101}],19:[function(require,module,exports){
+},{"./ecsignature":23,"./types":33,"bigi":14,"buffer":42,"create-hmac":51,"ecurve":56,"typeforce":107}],22:[function(require,module,exports){
 var baddress = require('./address')
 var bcrypto = require('./crypto')
 var ecdsa = require('./ecdsa')
@@ -4296,7 +4973,7 @@ ECPair.prototype.verify = function (hash, signature) {
 
 module.exports = ECPair
 
-},{"./address":14,"./crypto":17,"./ecdsa":18,"./networks":24,"./types":30,"bigi":11,"ecurve":51,"randombytes":70,"typeforce":101,"wif":112}],20:[function(require,module,exports){
+},{"./address":17,"./crypto":20,"./ecdsa":21,"./networks":27,"./types":33,"bigi":14,"ecurve":56,"randombytes":75,"typeforce":107,"wif":118}],23:[function(require,module,exports){
 (function (Buffer){
 var bip66 = require('bip66')
 var typeforce = require('typeforce')
@@ -4387,7 +5064,7 @@ ECSignature.prototype.toScriptSignature = function (hashType) {
 module.exports = ECSignature
 
 }).call(this,require("buffer").Buffer)
-},{"./types":30,"bigi":11,"bip66":13,"buffer":39,"typeforce":101}],21:[function(require,module,exports){
+},{"./types":33,"bigi":14,"bip66":16,"buffer":42,"typeforce":107}],24:[function(require,module,exports){
 (function (Buffer){
 var base58check = require('bs58check')
 var bcrypto = require('./crypto')
@@ -4713,7 +5390,7 @@ HDNode.prototype.toString = HDNode.prototype.toBase58
 module.exports = HDNode
 
 }).call(this,require("buffer").Buffer)
-},{"./crypto":17,"./ecpair":19,"./networks":24,"./types":30,"bigi":11,"bs58check":34,"buffer":39,"create-hmac":48,"ecurve":51,"typeforce":101}],22:[function(require,module,exports){
+},{"./crypto":20,"./ecpair":22,"./networks":27,"./types":33,"bigi":14,"bs58check":37,"buffer":42,"create-hmac":51,"ecurve":56,"typeforce":107}],25:[function(require,module,exports){
 module.exports = {
   Block: require('./block'),
   ECPair: require('./ecpair'),
@@ -4731,7 +5408,7 @@ module.exports = {
   script: require('./script')
 }
 
-},{"./address":14,"./block":15,"./bufferutils":16,"./crypto":17,"./ecpair":19,"./ecsignature":20,"./hdnode":21,"./message":23,"./networks":24,"./opcodes.json":25,"./script":26,"./transaction":28,"./transaction_builder":29}],23:[function(require,module,exports){
+},{"./address":17,"./block":18,"./bufferutils":19,"./crypto":20,"./ecpair":22,"./ecsignature":23,"./hdnode":24,"./message":26,"./networks":27,"./opcodes.json":28,"./script":29,"./transaction":31,"./transaction_builder":32}],26:[function(require,module,exports){
 (function (Buffer){
 var bufferutils = require('./bufferutils')
 var bcrypto = require('./crypto')
@@ -4789,7 +5466,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./bufferutils":16,"./crypto":17,"./ecdsa":18,"./ecpair":19,"./ecsignature":20,"./networks":24,"bigi":11,"buffer":39}],24:[function(require,module,exports){
+},{"./bufferutils":19,"./crypto":20,"./ecdsa":21,"./ecpair":22,"./ecsignature":23,"./networks":27,"bigi":14,"buffer":42}],27:[function(require,module,exports){
 // https://en.bitcoin.it/wiki/List_of_address_prefixes
 // Dogecoin BIP32 is a proposed standard: https://bitcointalk.org/index.php?topic=409731
 
@@ -4840,7 +5517,7 @@ module.exports = {
   }
 }
 
-},{}],25:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 module.exports={
   "OP_FALSE": 0,
   "OP_0": 0,
@@ -4972,7 +5649,7 @@ module.exports={
   "OP_INVALIDOPCODE": 255
 }
 
-},{}],26:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 (function (Buffer){
 var bip66 = require('bip66')
 var bufferutils = require('./bufferutils')
@@ -5422,7 +6099,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./bufferutils":16,"./opcodes.json":25,"./script_number":27,"./types":30,"bip66":13,"buffer":39,"typeforce":101}],27:[function(require,module,exports){
+},{"./bufferutils":19,"./opcodes.json":28,"./script_number":30,"./types":33,"bip66":16,"buffer":42,"typeforce":107}],30:[function(require,module,exports){
 (function (Buffer){
 function decode (buffer, maxLength, minimal) {
   maxLength = maxLength || 4
@@ -5492,7 +6169,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":39}],28:[function(require,module,exports){
+},{"buffer":42}],31:[function(require,module,exports){
 (function (Buffer){
 var bcrypto = require('./crypto')
 var bscript = require('./script')
@@ -5819,7 +6496,7 @@ Transaction.prototype.setInputScript = function (index, scriptSig) {
 module.exports = Transaction
 
 }).call(this,require("buffer").Buffer)
-},{"./bufferutils":16,"./crypto":17,"./opcodes.json":25,"./script":26,"./types":30,"buffer":39,"buffer-reverse":37,"typeforce":101}],29:[function(require,module,exports){
+},{"./bufferutils":19,"./crypto":20,"./opcodes.json":28,"./script":29,"./types":33,"buffer":42,"buffer-reverse":40,"typeforce":107}],32:[function(require,module,exports){
 (function (Buffer){
 var baddress = require('./address')
 var bcrypto = require('./crypto')
@@ -6324,7 +7001,7 @@ TransactionBuilder.prototype.sign = function (index, keyPair, redeemScript, hash
 module.exports = TransactionBuilder
 
 }).call(this,require("buffer").Buffer)
-},{"./address":14,"./crypto":17,"./ecpair":19,"./ecsignature":20,"./networks":24,"./opcodes.json":25,"./script":26,"./transaction":28,"./types":30,"buffer":39,"buffer-equals":36,"buffer-reverse":37,"typeforce":101}],30:[function(require,module,exports){
+},{"./address":17,"./crypto":20,"./ecpair":22,"./ecsignature":23,"./networks":27,"./opcodes.json":28,"./script":29,"./transaction":31,"./types":33,"buffer":42,"buffer-equals":39,"buffer-reverse":40,"typeforce":107}],33:[function(require,module,exports){
 var typeforce = require('typeforce')
 
 function nBuffer (value, n) {
@@ -6399,17 +7076,17 @@ for (var typeName in typeforce) {
 
 module.exports = types
 
-},{"typeforce":101}],31:[function(require,module,exports){
+},{"typeforce":107}],34:[function(require,module,exports){
 
-},{}],32:[function(require,module,exports){
-arguments[4][31][0].apply(exports,arguments)
-},{"dup":31}],33:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
+arguments[4][34][0].apply(exports,arguments)
+},{"dup":34}],36:[function(require,module,exports){
 var basex = require('base-x')
 var ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 module.exports = basex(ALPHABET)
 
-},{"base-x":7}],34:[function(require,module,exports){
+},{"base-x":10}],37:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 
@@ -6472,7 +7149,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bs58":33,"buffer":39,"create-hash":45}],35:[function(require,module,exports){
+},{"bs58":36,"buffer":42,"create-hash":48}],38:[function(require,module,exports){
 module.exports = function(a, b) {
   if (typeof a.compare === 'function') return a.compare(b)
   if (a === b) return 0
@@ -6499,7 +7176,7 @@ module.exports = function(a, b) {
 }
 
 
-},{}],36:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 module.exports = function (a, b) {
@@ -6529,7 +7206,7 @@ module.exports = function (a, b) {
 };
 
 }).call(this,{"isBuffer":require("../is-buffer/index.js")})
-},{"../is-buffer/index.js":59}],37:[function(require,module,exports){
+},{"../is-buffer/index.js":64}],40:[function(require,module,exports){
 (function (Buffer){
 module.exports = function reverse (src) {
   var buffer = new Buffer(src.length)
@@ -6543,7 +7220,7 @@ module.exports = function reverse (src) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":39}],38:[function(require,module,exports){
+},{"buffer":42}],41:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -6655,7 +7332,7 @@ exports.allocUnsafeSlow = function allocUnsafeSlow(size) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"buffer":39}],39:[function(require,module,exports){
+},{"buffer":42}],42:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -8363,7 +9040,7 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":8,"ieee754":57}],40:[function(require,module,exports){
+},{"base64-js":11,"ieee754":62}],43:[function(require,module,exports){
 module.exports = {
   "100": "Continue",
   "101": "Switching Protocols",
@@ -8429,7 +9106,7 @@ module.exports = {
   "511": "Network Authentication Required"
 }
 
-},{}],41:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 (function (Buffer){
 var Transform = require('stream').Transform
 var inherits = require('inherits')
@@ -8523,7 +9200,7 @@ CipherBase.prototype._toString = function (value, enc, fin) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":39,"inherits":58,"stream":92,"string_decoder":97}],42:[function(require,module,exports){
+},{"buffer":42,"inherits":63,"stream":97,"string_decoder":103}],45:[function(require,module,exports){
 !function(globals) {
 'use strict'
 
@@ -8571,7 +9248,7 @@ if (typeof module !== 'undefined' && module.exports) { //CommonJS
 }
 
 }(this);
-},{}],43:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 !function(globals) {
 'use strict'
 
@@ -8601,7 +9278,7 @@ if (typeof module !== 'undefined' && module.exports) { //CommonJS
 }
 
 }(this);
-},{}],44:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -8712,7 +9389,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":59}],45:[function(require,module,exports){
+},{"../../is-buffer/index.js":64}],48:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var inherits = require('inherits')
@@ -8768,7 +9445,7 @@ module.exports = function createHash (alg) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./md5":47,"buffer":39,"cipher-base":41,"inherits":58,"ripemd160":82,"sha.js":84}],46:[function(require,module,exports){
+},{"./md5":50,"buffer":42,"cipher-base":44,"inherits":63,"ripemd160":87,"sha.js":89}],49:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var intSize = 4;
@@ -8805,7 +9482,7 @@ function hash(buf, fn, hashSize, bigEndian) {
 }
 exports.hash = hash;
 }).call(this,require("buffer").Buffer)
-},{"buffer":39}],47:[function(require,module,exports){
+},{"buffer":42}],50:[function(require,module,exports){
 'use strict';
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
@@ -8962,7 +9639,7 @@ function bit_rol(num, cnt)
 module.exports = function md5(buf) {
   return helpers.hash(buf, core_md5, 16);
 };
-},{"./helpers":46}],48:[function(require,module,exports){
+},{"./helpers":49}],51:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var createHash = require('create-hash/browser');
@@ -9034,7 +9711,433 @@ module.exports = function createHmac(alg, key) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":39,"create-hash/browser":45,"inherits":58,"stream":92}],49:[function(require,module,exports){
+},{"buffer":42,"create-hash/browser":48,"inherits":63,"stream":97}],52:[function(require,module,exports){
+(function (process){
+/**
+ * This is the web browser implementation of `debug()`.
+ *
+ * Expose `debug()` as the module.
+ */
+
+exports = module.exports = require('./debug');
+exports.log = log;
+exports.formatArgs = formatArgs;
+exports.save = save;
+exports.load = load;
+exports.useColors = useColors;
+exports.storage = 'undefined' != typeof chrome
+               && 'undefined' != typeof chrome.storage
+                  ? chrome.storage.local
+                  : localstorage();
+
+/**
+ * Colors.
+ */
+
+exports.colors = [
+  '#0000CC', '#0000FF', '#0033CC', '#0033FF', '#0066CC', '#0066FF', '#0099CC',
+  '#0099FF', '#00CC00', '#00CC33', '#00CC66', '#00CC99', '#00CCCC', '#00CCFF',
+  '#3300CC', '#3300FF', '#3333CC', '#3333FF', '#3366CC', '#3366FF', '#3399CC',
+  '#3399FF', '#33CC00', '#33CC33', '#33CC66', '#33CC99', '#33CCCC', '#33CCFF',
+  '#6600CC', '#6600FF', '#6633CC', '#6633FF', '#66CC00', '#66CC33', '#9900CC',
+  '#9900FF', '#9933CC', '#9933FF', '#99CC00', '#99CC33', '#CC0000', '#CC0033',
+  '#CC0066', '#CC0099', '#CC00CC', '#CC00FF', '#CC3300', '#CC3333', '#CC3366',
+  '#CC3399', '#CC33CC', '#CC33FF', '#CC6600', '#CC6633', '#CC9900', '#CC9933',
+  '#CCCC00', '#CCCC33', '#FF0000', '#FF0033', '#FF0066', '#FF0099', '#FF00CC',
+  '#FF00FF', '#FF3300', '#FF3333', '#FF3366', '#FF3399', '#FF33CC', '#FF33FF',
+  '#FF6600', '#FF6633', '#FF9900', '#FF9933', '#FFCC00', '#FFCC33'
+];
+
+/**
+ * Currently only WebKit-based Web Inspectors, Firefox >= v31,
+ * and the Firebug extension (any Firefox version) are known
+ * to support "%c" CSS customizations.
+ *
+ * TODO: add a `localStorage` variable to explicitly enable/disable colors
+ */
+
+function useColors() {
+  // NB: In an Electron preload script, document will be defined but not fully
+  // initialized. Since we know we're in Chrome, we'll just detect this case
+  // explicitly
+  if (typeof window !== 'undefined' && window.process && window.process.type === 'renderer') {
+    return true;
+  }
+
+  // Internet Explorer and Edge do not support colors.
+  if (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
+    return false;
+  }
+
+  // is webkit? http://stackoverflow.com/a/16459606/376773
+  // document is undefined in react-native: https://github.com/facebook/react-native/pull/1632
+  return (typeof document !== 'undefined' && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance) ||
+    // is firebug? http://stackoverflow.com/a/398120/376773
+    (typeof window !== 'undefined' && window.console && (window.console.firebug || (window.console.exception && window.console.table))) ||
+    // is firefox >= v31?
+    // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
+    (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31) ||
+    // double check webkit in userAgent just in case we are in a worker
+    (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/));
+}
+
+/**
+ * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
+ */
+
+exports.formatters.j = function(v) {
+  try {
+    return JSON.stringify(v);
+  } catch (err) {
+    return '[UnexpectedJSONParseError]: ' + err.message;
+  }
+};
+
+
+/**
+ * Colorize log arguments if enabled.
+ *
+ * @api public
+ */
+
+function formatArgs(args) {
+  var useColors = this.useColors;
+
+  args[0] = (useColors ? '%c' : '')
+    + this.namespace
+    + (useColors ? ' %c' : ' ')
+    + args[0]
+    + (useColors ? '%c ' : ' ')
+    + '+' + exports.humanize(this.diff);
+
+  if (!useColors) return;
+
+  var c = 'color: ' + this.color;
+  args.splice(1, 0, c, 'color: inherit')
+
+  // the final "%c" is somewhat tricky, because there could be other
+  // arguments passed either before or after the %c, so we need to
+  // figure out the correct index to insert the CSS into
+  var index = 0;
+  var lastC = 0;
+  args[0].replace(/%[a-zA-Z%]/g, function(match) {
+    if ('%%' === match) return;
+    index++;
+    if ('%c' === match) {
+      // we only are interested in the *last* %c
+      // (the user may have provided their own)
+      lastC = index;
+    }
+  });
+
+  args.splice(lastC, 0, c);
+}
+
+/**
+ * Invokes `console.log()` when available.
+ * No-op when `console.log` is not a "function".
+ *
+ * @api public
+ */
+
+function log() {
+  // this hackery is required for IE8/9, where
+  // the `console.log` function doesn't have 'apply'
+  return 'object' === typeof console
+    && console.log
+    && Function.prototype.apply.call(console.log, console, arguments);
+}
+
+/**
+ * Save `namespaces`.
+ *
+ * @param {String} namespaces
+ * @api private
+ */
+
+function save(namespaces) {
+  try {
+    if (null == namespaces) {
+      exports.storage.removeItem('debug');
+    } else {
+      exports.storage.debug = namespaces;
+    }
+  } catch(e) {}
+}
+
+/**
+ * Load `namespaces`.
+ *
+ * @return {String} returns the previously persisted debug modes
+ * @api private
+ */
+
+function load() {
+  var r;
+  try {
+    r = exports.storage.debug;
+  } catch(e) {}
+
+  // If debug isn't set in LS, and we're in Electron, try to load $DEBUG
+  if (!r && typeof process !== 'undefined' && 'env' in process) {
+    r = process.env.DEBUG;
+  }
+
+  return r;
+}
+
+/**
+ * Enable namespaces listed in `localStorage.debug` initially.
+ */
+
+exports.enable(load());
+
+/**
+ * Localstorage attempts to return the localstorage.
+ *
+ * This is necessary because safari throws
+ * when a user disables cookies/localstorage
+ * and you attempt to access it.
+ *
+ * @return {LocalStorage}
+ * @api private
+ */
+
+function localstorage() {
+  try {
+    return window.localStorage;
+  } catch (e) {}
+}
+
+}).call(this,require('_process'))
+},{"./debug":53,"_process":70}],53:[function(require,module,exports){
+
+/**
+ * This is the common logic for both the Node.js and web browser
+ * implementations of `debug()`.
+ *
+ * Expose `debug()` as the module.
+ */
+
+exports = module.exports = createDebug.debug = createDebug['default'] = createDebug;
+exports.coerce = coerce;
+exports.disable = disable;
+exports.enable = enable;
+exports.enabled = enabled;
+exports.humanize = require('ms');
+
+/**
+ * Active `debug` instances.
+ */
+exports.instances = [];
+
+/**
+ * The currently active debug mode names, and names to skip.
+ */
+
+exports.names = [];
+exports.skips = [];
+
+/**
+ * Map of special "%n" handling functions, for the debug "format" argument.
+ *
+ * Valid key names are a single, lower or upper-case letter, i.e. "n" and "N".
+ */
+
+exports.formatters = {};
+
+/**
+ * Select a color.
+ * @param {String} namespace
+ * @return {Number}
+ * @api private
+ */
+
+function selectColor(namespace) {
+  var hash = 0, i;
+
+  for (i in namespace) {
+    hash  = ((hash << 5) - hash) + namespace.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+
+  return exports.colors[Math.abs(hash) % exports.colors.length];
+}
+
+/**
+ * Create a debugger with the given `namespace`.
+ *
+ * @param {String} namespace
+ * @return {Function}
+ * @api public
+ */
+
+function createDebug(namespace) {
+
+  var prevTime;
+
+  function debug() {
+    // disabled?
+    if (!debug.enabled) return;
+
+    var self = debug;
+
+    // set `diff` timestamp
+    var curr = +new Date();
+    var ms = curr - (prevTime || curr);
+    self.diff = ms;
+    self.prev = prevTime;
+    self.curr = curr;
+    prevTime = curr;
+
+    // turn the `arguments` into a proper Array
+    var args = new Array(arguments.length);
+    for (var i = 0; i < args.length; i++) {
+      args[i] = arguments[i];
+    }
+
+    args[0] = exports.coerce(args[0]);
+
+    if ('string' !== typeof args[0]) {
+      // anything else let's inspect with %O
+      args.unshift('%O');
+    }
+
+    // apply any `formatters` transformations
+    var index = 0;
+    args[0] = args[0].replace(/%([a-zA-Z%])/g, function(match, format) {
+      // if we encounter an escaped % then don't increase the array index
+      if (match === '%%') return match;
+      index++;
+      var formatter = exports.formatters[format];
+      if ('function' === typeof formatter) {
+        var val = args[index];
+        match = formatter.call(self, val);
+
+        // now we need to remove `args[index]` since it's inlined in the `format`
+        args.splice(index, 1);
+        index--;
+      }
+      return match;
+    });
+
+    // apply env-specific formatting (colors, etc.)
+    exports.formatArgs.call(self, args);
+
+    var logFn = debug.log || exports.log || console.log.bind(console);
+    logFn.apply(self, args);
+  }
+
+  debug.namespace = namespace;
+  debug.enabled = exports.enabled(namespace);
+  debug.useColors = exports.useColors();
+  debug.color = selectColor(namespace);
+  debug.destroy = destroy;
+
+  // env-specific initialization logic for debug instances
+  if ('function' === typeof exports.init) {
+    exports.init(debug);
+  }
+
+  exports.instances.push(debug);
+
+  return debug;
+}
+
+function destroy () {
+  var index = exports.instances.indexOf(this);
+  if (index !== -1) {
+    exports.instances.splice(index, 1);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+/**
+ * Enables a debug mode by namespaces. This can include modes
+ * separated by a colon and wildcards.
+ *
+ * @param {String} namespaces
+ * @api public
+ */
+
+function enable(namespaces) {
+  exports.save(namespaces);
+
+  exports.names = [];
+  exports.skips = [];
+
+  var i;
+  var split = (typeof namespaces === 'string' ? namespaces : '').split(/[\s,]+/);
+  var len = split.length;
+
+  for (i = 0; i < len; i++) {
+    if (!split[i]) continue; // ignore empty strings
+    namespaces = split[i].replace(/\*/g, '.*?');
+    if (namespaces[0] === '-') {
+      exports.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
+    } else {
+      exports.names.push(new RegExp('^' + namespaces + '$'));
+    }
+  }
+
+  for (i = 0; i < exports.instances.length; i++) {
+    var instance = exports.instances[i];
+    instance.enabled = exports.enabled(instance.namespace);
+  }
+}
+
+/**
+ * Disable debug output.
+ *
+ * @api public
+ */
+
+function disable() {
+  exports.enable('');
+}
+
+/**
+ * Returns true if the given mode name is enabled, false otherwise.
+ *
+ * @param {String} name
+ * @return {Boolean}
+ * @api public
+ */
+
+function enabled(name) {
+  if (name[name.length - 1] === '*') {
+    return true;
+  }
+  var i, len;
+  for (i = 0, len = exports.skips.length; i < len; i++) {
+    if (exports.skips[i].test(name)) {
+      return false;
+    }
+  }
+  for (i = 0, len = exports.names.length; i < len; i++) {
+    if (exports.names[i].test(name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Coerce `val`.
+ *
+ * @param {Mixed} val
+ * @return {Mixed}
+ * @api private
+ */
+
+function coerce(val) {
+  if (val instanceof Error) return val.stack || val.message;
+  return val;
+}
+
+},{"ms":68}],54:[function(require,module,exports){
 var assert = require('assert')
 var BigInteger = require('bigi')
 
@@ -9113,7 +10216,7 @@ Curve.prototype.validate = function (Q) {
 
 module.exports = Curve
 
-},{"./point":53,"assert":6,"bigi":11}],50:[function(require,module,exports){
+},{"./point":58,"assert":9,"bigi":14}],55:[function(require,module,exports){
 module.exports={
   "secp128r1": {
     "p": "fffffffdffffffffffffffffffffffff",
@@ -9180,7 +10283,7 @@ module.exports={
   }
 }
 
-},{}],51:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 var Point = require('./point')
 var Curve = require('./curve')
 
@@ -9192,7 +10295,7 @@ module.exports = {
   getCurveByName: getCurveByName
 }
 
-},{"./curve":49,"./names":52,"./point":53}],52:[function(require,module,exports){
+},{"./curve":54,"./names":57,"./point":58}],57:[function(require,module,exports){
 var BigInteger = require('bigi')
 
 var curves = require('./curves.json')
@@ -9215,7 +10318,7 @@ function getCurveByName (name) {
 
 module.exports = getCurveByName
 
-},{"./curve":49,"./curves.json":50,"bigi":11}],53:[function(require,module,exports){
+},{"./curve":54,"./curves.json":55,"bigi":14}],58:[function(require,module,exports){
 (function (Buffer){
 var assert = require('assert')
 var BigInteger = require('bigi')
@@ -9462,7 +10565,7 @@ Point.prototype.toString = function () {
 module.exports = Point
 
 }).call(this,require("buffer").Buffer)
-},{"assert":6,"bigi":11,"buffer":39}],54:[function(require,module,exports){
+},{"assert":9,"bigi":14,"buffer":42}],59:[function(require,module,exports){
 (function (process,global){
 /*!
  * @overview es6-promise - a tiny implementation of Promises/A+.
@@ -10438,7 +11541,7 @@ module.exports = Point
 
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":65}],55:[function(require,module,exports){
+},{"_process":70}],60:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -10742,7 +11845,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],56:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 var http = require('http')
 var url = require('url')
 
@@ -10775,7 +11878,7 @@ function validateParams (params) {
   return params
 }
 
-},{"http":93,"url":103}],57:[function(require,module,exports){
+},{"http":98,"url":109}],62:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -10861,7 +11964,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],58:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -10886,7 +11989,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],59:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -10909,16 +12012,16 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],60:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],61:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 // Ignore module for browserify (see package.json)
-},{}],62:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 (function (process,global,__dirname){
 /**
  * A JavaScript implementation of the JSON-LD API.
@@ -19102,235 +20205,161 @@ return factory;
 })();
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},"/node_modules/jsonld/js")
-},{"_process":65,"crypto":61,"es6-promise":54,"http":61,"jsonld-request":61,"pkginfo":61,"request":61,"util":61,"xmldom":61}],63:[function(require,module,exports){
-(function (process){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
+},{"_process":70,"crypto":66,"es6-promise":59,"http":66,"jsonld-request":66,"pkginfo":66,"request":66,"util":66,"xmldom":66}],68:[function(require,module,exports){
+/**
+ * Helpers.
+ */
 
-// resolves . and .. elements in a path array with directory names there
-// must be no slashes, empty elements, or device names (c:\) in the array
-// (so also no leading and trailing slashes - it does not distinguish
-// relative and absolute paths)
-function normalizeArray(parts, allowAboveRoot) {
-  // if the path tries to go above the root, `up` ends up > 0
-  var up = 0;
-  for (var i = parts.length - 1; i >= 0; i--) {
-    var last = parts[i];
-    if (last === '.') {
-      parts.splice(i, 1);
-    } else if (last === '..') {
-      parts.splice(i, 1);
-      up++;
-    } else if (up) {
-      parts.splice(i, 1);
-      up--;
-    }
+var s = 1000;
+var m = s * 60;
+var h = m * 60;
+var d = h * 24;
+var y = d * 365.25;
+
+/**
+ * Parse or format the given `val`.
+ *
+ * Options:
+ *
+ *  - `long` verbose formatting [false]
+ *
+ * @param {String|Number} val
+ * @param {Object} [options]
+ * @throws {Error} throw an error if val is not a non-empty string or a number
+ * @return {String|Number}
+ * @api public
+ */
+
+module.exports = function(val, options) {
+  options = options || {};
+  var type = typeof val;
+  if (type === 'string' && val.length > 0) {
+    return parse(val);
+  } else if (type === 'number' && isNaN(val) === false) {
+    return options.long ? fmtLong(val) : fmtShort(val);
   }
+  throw new Error(
+    'val is not a non-empty string or a valid number. val=' +
+      JSON.stringify(val)
+  );
+};
 
-  // if the path is allowed to go above the root, restore leading ..s
-  if (allowAboveRoot) {
-    for (; up--; up) {
-      parts.unshift('..');
-    }
+/**
+ * Parse the given `str` and return milliseconds.
+ *
+ * @param {String} str
+ * @return {Number}
+ * @api private
+ */
+
+function parse(str) {
+  str = String(str);
+  if (str.length > 100) {
+    return;
   }
-
-  return parts;
+  var match = /^((?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|years?|yrs?|y)?$/i.exec(
+    str
+  );
+  if (!match) {
+    return;
+  }
+  var n = parseFloat(match[1]);
+  var type = (match[2] || 'ms').toLowerCase();
+  switch (type) {
+    case 'years':
+    case 'year':
+    case 'yrs':
+    case 'yr':
+    case 'y':
+      return n * y;
+    case 'days':
+    case 'day':
+    case 'd':
+      return n * d;
+    case 'hours':
+    case 'hour':
+    case 'hrs':
+    case 'hr':
+    case 'h':
+      return n * h;
+    case 'minutes':
+    case 'minute':
+    case 'mins':
+    case 'min':
+    case 'm':
+      return n * m;
+    case 'seconds':
+    case 'second':
+    case 'secs':
+    case 'sec':
+    case 's':
+      return n * s;
+    case 'milliseconds':
+    case 'millisecond':
+    case 'msecs':
+    case 'msec':
+    case 'ms':
+      return n;
+    default:
+      return undefined;
+  }
 }
 
-// Split a filename into [root, dir, basename, ext], unix version
-// 'root' is just a slash, or nothing.
-var splitPathRe =
-    /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
-var splitPath = function(filename) {
-  return splitPathRe.exec(filename).slice(1);
-};
+/**
+ * Short format for `ms`.
+ *
+ * @param {Number} ms
+ * @return {String}
+ * @api private
+ */
 
-// path.resolve([from ...], to)
-// posix version
-exports.resolve = function() {
-  var resolvedPath = '',
-      resolvedAbsolute = false;
-
-  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
-    var path = (i >= 0) ? arguments[i] : process.cwd();
-
-    // Skip empty and invalid entries
-    if (typeof path !== 'string') {
-      throw new TypeError('Arguments to path.resolve must be strings');
-    } else if (!path) {
-      continue;
-    }
-
-    resolvedPath = path + '/' + resolvedPath;
-    resolvedAbsolute = path.charAt(0) === '/';
+function fmtShort(ms) {
+  if (ms >= d) {
+    return Math.round(ms / d) + 'd';
   }
-
-  // At this point the path should be resolved to a full absolute path, but
-  // handle relative paths to be safe (might happen when process.cwd() fails)
-
-  // Normalize the path
-  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
-    return !!p;
-  }), !resolvedAbsolute).join('/');
-
-  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
-};
-
-// path.normalize(path)
-// posix version
-exports.normalize = function(path) {
-  var isAbsolute = exports.isAbsolute(path),
-      trailingSlash = substr(path, -1) === '/';
-
-  // Normalize the path
-  path = normalizeArray(filter(path.split('/'), function(p) {
-    return !!p;
-  }), !isAbsolute).join('/');
-
-  if (!path && !isAbsolute) {
-    path = '.';
+  if (ms >= h) {
+    return Math.round(ms / h) + 'h';
   }
-  if (path && trailingSlash) {
-    path += '/';
+  if (ms >= m) {
+    return Math.round(ms / m) + 'm';
   }
-
-  return (isAbsolute ? '/' : '') + path;
-};
-
-// posix version
-exports.isAbsolute = function(path) {
-  return path.charAt(0) === '/';
-};
-
-// posix version
-exports.join = function() {
-  var paths = Array.prototype.slice.call(arguments, 0);
-  return exports.normalize(filter(paths, function(p, index) {
-    if (typeof p !== 'string') {
-      throw new TypeError('Arguments to path.join must be strings');
-    }
-    return p;
-  }).join('/'));
-};
-
-
-// path.relative(from, to)
-// posix version
-exports.relative = function(from, to) {
-  from = exports.resolve(from).substr(1);
-  to = exports.resolve(to).substr(1);
-
-  function trim(arr) {
-    var start = 0;
-    for (; start < arr.length; start++) {
-      if (arr[start] !== '') break;
-    }
-
-    var end = arr.length - 1;
-    for (; end >= 0; end--) {
-      if (arr[end] !== '') break;
-    }
-
-    if (start > end) return [];
-    return arr.slice(start, end - start + 1);
+  if (ms >= s) {
+    return Math.round(ms / s) + 's';
   }
-
-  var fromParts = trim(from.split('/'));
-  var toParts = trim(to.split('/'));
-
-  var length = Math.min(fromParts.length, toParts.length);
-  var samePartsLength = length;
-  for (var i = 0; i < length; i++) {
-    if (fromParts[i] !== toParts[i]) {
-      samePartsLength = i;
-      break;
-    }
-  }
-
-  var outputParts = [];
-  for (var i = samePartsLength; i < fromParts.length; i++) {
-    outputParts.push('..');
-  }
-
-  outputParts = outputParts.concat(toParts.slice(samePartsLength));
-
-  return outputParts.join('/');
-};
-
-exports.sep = '/';
-exports.delimiter = ':';
-
-exports.dirname = function(path) {
-  var result = splitPath(path),
-      root = result[0],
-      dir = result[1];
-
-  if (!root && !dir) {
-    // No dirname whatsoever
-    return '.';
-  }
-
-  if (dir) {
-    // It has a dirname, strip trailing slash
-    dir = dir.substr(0, dir.length - 1);
-  }
-
-  return root + dir;
-};
-
-
-exports.basename = function(path, ext) {
-  var f = splitPath(path)[2];
-  // TODO: make this comparison case-insensitive on windows?
-  if (ext && f.substr(-1 * ext.length) === ext) {
-    f = f.substr(0, f.length - ext.length);
-  }
-  return f;
-};
-
-
-exports.extname = function(path) {
-  return splitPath(path)[3];
-};
-
-function filter (xs, f) {
-    if (xs.filter) return xs.filter(f);
-    var res = [];
-    for (var i = 0; i < xs.length; i++) {
-        if (f(xs[i], i, xs)) res.push(xs[i]);
-    }
-    return res;
+  return ms + 'ms';
 }
 
-// String.prototype.substr - negative index don't work in IE8
-var substr = 'ab'.substr(-1) === 'b'
-    ? function (str, start, len) { return str.substr(start, len) }
-    : function (str, start, len) {
-        if (start < 0) start = str.length + start;
-        return str.substr(start, len);
-    }
-;
+/**
+ * Long format for `ms`.
+ *
+ * @param {Number} ms
+ * @return {String}
+ * @api private
+ */
 
-}).call(this,require('_process'))
-},{"_process":65}],64:[function(require,module,exports){
+function fmtLong(ms) {
+  return plural(ms, d, 'day') ||
+    plural(ms, h, 'hour') ||
+    plural(ms, m, 'minute') ||
+    plural(ms, s, 'second') ||
+    ms + ' ms';
+}
+
+/**
+ * Pluralization helper.
+ */
+
+function plural(ms, n, name) {
+  if (ms < n) {
+    return;
+  }
+  if (ms < n * 1.5) {
+    return Math.floor(ms / n) + ' ' + name;
+  }
+  return Math.ceil(ms / n) + ' ' + name + 's';
+}
+
+},{}],69:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -19377,7 +20406,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":65}],65:[function(require,module,exports){
+},{"_process":70}],70:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -19563,7 +20592,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],66:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/punycode v1.4.1 by @mathias */
 ;(function(root) {
@@ -20100,7 +21129,7 @@ process.umask = function() { return 0; };
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],67:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -20186,7 +21215,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],68:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -20273,13 +21302,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],69:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":67,"./encode":68}],70:[function(require,module,exports){
+},{"./decode":72,"./encode":73}],75:[function(require,module,exports){
 (function (process,global,Buffer){
 'use strict'
 
@@ -20319,10 +21348,10 @@ function randomBytes (size, cb) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"_process":65,"buffer":39}],71:[function(require,module,exports){
+},{"_process":70,"buffer":42}],76:[function(require,module,exports){
 module.exports = require("./lib/_stream_duplex.js")
 
-},{"./lib/_stream_duplex.js":72}],72:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":77}],77:[function(require,module,exports){
 // a duplex stream is just a stream that is both readable and writable.
 // Since JS doesn't have multiple prototypal inheritance, this class
 // prototypally inherits from Readable, and then parasitically from
@@ -20398,7 +21427,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":74,"./_stream_writable":76,"core-util-is":44,"inherits":58,"process-nextick-args":64}],73:[function(require,module,exports){
+},{"./_stream_readable":79,"./_stream_writable":81,"core-util-is":47,"inherits":63,"process-nextick-args":69}],78:[function(require,module,exports){
 // a passthrough stream.
 // basically just the most minimal sort of Transform stream.
 // Every written chunk gets output as-is.
@@ -20425,7 +21454,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":75,"core-util-is":44,"inherits":58}],74:[function(require,module,exports){
+},{"./_stream_transform":80,"core-util-is":47,"inherits":63}],79:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -21369,7 +22398,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":72,"./internal/streams/BufferList":77,"_process":65,"buffer":39,"buffer-shims":38,"core-util-is":44,"events":55,"inherits":58,"isarray":60,"process-nextick-args":64,"string_decoder/":97,"util":31}],75:[function(require,module,exports){
+},{"./_stream_duplex":77,"./internal/streams/BufferList":82,"_process":70,"buffer":42,"buffer-shims":41,"core-util-is":47,"events":60,"inherits":63,"isarray":65,"process-nextick-args":69,"string_decoder/":103,"util":34}],80:[function(require,module,exports){
 // a transform stream is a readable/writable stream where you do
 // something with the data.  Sometimes it's called a "filter",
 // but that's not a great name for it, since that implies a thing where
@@ -21552,7 +22581,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":72,"core-util-is":44,"inherits":58}],76:[function(require,module,exports){
+},{"./_stream_duplex":77,"core-util-is":47,"inherits":63}],81:[function(require,module,exports){
 (function (process){
 // A bit simpler than readable streams.
 // Implement an async ._write(chunk, encoding, cb), and it'll handle all
@@ -22106,7 +23135,7 @@ function CorkedRequest(state) {
   };
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":72,"_process":65,"buffer":39,"buffer-shims":38,"core-util-is":44,"events":55,"inherits":58,"process-nextick-args":64,"util-deprecate":105}],77:[function(require,module,exports){
+},{"./_stream_duplex":77,"_process":70,"buffer":42,"buffer-shims":41,"core-util-is":47,"events":60,"inherits":63,"process-nextick-args":69,"util-deprecate":111}],82:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('buffer').Buffer;
@@ -22171,10 +23200,10 @@ BufferList.prototype.concat = function (n) {
   }
   return ret;
 };
-},{"buffer":39,"buffer-shims":38}],78:[function(require,module,exports){
+},{"buffer":42,"buffer-shims":41}],83:[function(require,module,exports){
 module.exports = require("./lib/_stream_passthrough.js")
 
-},{"./lib/_stream_passthrough.js":73}],79:[function(require,module,exports){
+},{"./lib/_stream_passthrough.js":78}],84:[function(require,module,exports){
 (function (process){
 var Stream = (function (){
   try {
@@ -22194,13 +23223,13 @@ if (!process.browser && process.env.READABLE_STREAM === 'disable' && Stream) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/_stream_duplex.js":72,"./lib/_stream_passthrough.js":73,"./lib/_stream_readable.js":74,"./lib/_stream_transform.js":75,"./lib/_stream_writable.js":76,"_process":65}],80:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":77,"./lib/_stream_passthrough.js":78,"./lib/_stream_readable.js":79,"./lib/_stream_transform.js":80,"./lib/_stream_writable.js":81,"_process":70}],85:[function(require,module,exports){
 module.exports = require("./lib/_stream_transform.js")
 
-},{"./lib/_stream_transform.js":75}],81:[function(require,module,exports){
+},{"./lib/_stream_transform.js":80}],86:[function(require,module,exports){
 module.exports = require("./lib/_stream_writable.js")
 
-},{"./lib/_stream_writable.js":76}],82:[function(require,module,exports){
+},{"./lib/_stream_writable.js":81}],87:[function(require,module,exports){
 (function (Buffer){
 /*
 CryptoJS v3.1.2
@@ -22414,7 +23443,7 @@ function ripemd160 (message) {
 module.exports = ripemd160
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":39}],83:[function(require,module,exports){
+},{"buffer":42}],88:[function(require,module,exports){
 (function (Buffer){
 // prototype class for hash functions
 function Hash (blockSize, finalSize) {
@@ -22487,7 +23516,7 @@ Hash.prototype._update = function () {
 module.exports = Hash
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":39}],84:[function(require,module,exports){
+},{"buffer":42}],89:[function(require,module,exports){
 var exports = module.exports = function SHA (algorithm) {
   algorithm = algorithm.toLowerCase()
 
@@ -22504,7 +23533,7 @@ exports.sha256 = require('./sha256')
 exports.sha384 = require('./sha384')
 exports.sha512 = require('./sha512')
 
-},{"./sha":85,"./sha1":86,"./sha224":87,"./sha256":88,"./sha384":89,"./sha512":90}],85:[function(require,module,exports){
+},{"./sha":90,"./sha1":91,"./sha224":92,"./sha256":93,"./sha384":94,"./sha512":95}],90:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-0, as defined
@@ -22601,7 +23630,7 @@ Sha.prototype._hash = function () {
 module.exports = Sha
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":83,"buffer":39,"inherits":58}],86:[function(require,module,exports){
+},{"./hash":88,"buffer":42,"inherits":63}],91:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
@@ -22703,7 +23732,7 @@ Sha1.prototype._hash = function () {
 module.exports = Sha1
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":83,"buffer":39,"inherits":58}],87:[function(require,module,exports){
+},{"./hash":88,"buffer":42,"inherits":63}],92:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -22759,7 +23788,7 @@ Sha224.prototype._hash = function () {
 module.exports = Sha224
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":83,"./sha256":88,"buffer":39,"inherits":58}],88:[function(require,module,exports){
+},{"./hash":88,"./sha256":93,"buffer":42,"inherits":63}],93:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -22897,7 +23926,7 @@ Sha256.prototype._hash = function () {
 module.exports = Sha256
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":83,"buffer":39,"inherits":58}],89:[function(require,module,exports){
+},{"./hash":88,"buffer":42,"inherits":63}],94:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var SHA512 = require('./sha512')
@@ -22957,7 +23986,7 @@ Sha384.prototype._hash = function () {
 module.exports = Sha384
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":83,"./sha512":90,"buffer":39,"inherits":58}],90:[function(require,module,exports){
+},{"./hash":88,"./sha512":95,"buffer":42,"inherits":63}],95:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var Hash = require('./hash')
@@ -23220,7 +24249,7 @@ Sha512.prototype._hash = function () {
 module.exports = Sha512
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":83,"buffer":39,"inherits":58}],91:[function(require,module,exports){
+},{"./hash":88,"buffer":42,"inherits":63}],96:[function(require,module,exports){
 !function(globals) {
 'use strict'
 
@@ -23375,7 +24404,7 @@ sha256.x2 = function(message, options) {
 
 }(this);
 
-},{"convert-hex":42,"convert-string":43}],92:[function(require,module,exports){
+},{"convert-hex":45,"convert-string":46}],97:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -23504,7 +24533,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":55,"inherits":58,"readable-stream/duplex.js":71,"readable-stream/passthrough.js":78,"readable-stream/readable.js":79,"readable-stream/transform.js":80,"readable-stream/writable.js":81}],93:[function(require,module,exports){
+},{"events":60,"inherits":63,"readable-stream/duplex.js":76,"readable-stream/passthrough.js":83,"readable-stream/readable.js":84,"readable-stream/transform.js":85,"readable-stream/writable.js":86}],98:[function(require,module,exports){
 (function (global){
 var ClientRequest = require('./lib/request')
 var extend = require('xtend')
@@ -23586,7 +24615,7 @@ http.METHODS = [
 	'UNSUBSCRIBE'
 ]
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lib/request":95,"builtin-status-codes":40,"url":103,"xtend":114}],94:[function(require,module,exports){
+},{"./lib/request":100,"builtin-status-codes":43,"url":109,"xtend":120}],99:[function(require,module,exports){
 (function (global){
 exports.fetch = isFunction(global.fetch) && isFunction(global.ReadableStream)
 
@@ -23659,7 +24688,7 @@ function isFunction (value) {
 xhr = null // Help gc
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],95:[function(require,module,exports){
+},{}],100:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -23969,7 +24998,7 @@ var unsafeHeaders = [
 ]
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":94,"./response":96,"_process":65,"buffer":39,"inherits":58,"readable-stream":79,"to-arraybuffer":98}],96:[function(require,module,exports){
+},{"./capability":99,"./response":101,"_process":70,"buffer":42,"inherits":63,"readable-stream":84,"to-arraybuffer":104}],101:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -24155,7 +25184,64 @@ IncomingMessage.prototype._onXHRProgress = function () {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":94,"_process":65,"buffer":39,"inherits":58,"readable-stream":79}],97:[function(require,module,exports){
+},{"./capability":99,"_process":70,"buffer":42,"inherits":63,"readable-stream":84}],102:[function(require,module,exports){
+/*! http://mths.be/startswith v0.2.0 by @mathias */
+if (!String.prototype.startsWith) {
+	(function() {
+		'use strict'; // needed to support `apply`/`call` with `undefined`/`null`
+		var defineProperty = (function() {
+			// IE 8 only supports `Object.defineProperty` on DOM elements
+			try {
+				var object = {};
+				var $defineProperty = Object.defineProperty;
+				var result = $defineProperty(object, object, object) && $defineProperty;
+			} catch(error) {}
+			return result;
+		}());
+		var toString = {}.toString;
+		var startsWith = function(search) {
+			if (this == null) {
+				throw TypeError();
+			}
+			var string = String(this);
+			if (search && toString.call(search) == '[object RegExp]') {
+				throw TypeError();
+			}
+			var stringLength = string.length;
+			var searchString = String(search);
+			var searchLength = searchString.length;
+			var position = arguments.length > 1 ? arguments[1] : undefined;
+			// `ToInteger`
+			var pos = position ? Number(position) : 0;
+			if (pos != pos) { // better `isNaN`
+				pos = 0;
+			}
+			var start = Math.min(Math.max(pos, 0), stringLength);
+			// Avoid the `indexOf` call if no match is possible
+			if (searchLength + start > stringLength) {
+				return false;
+			}
+			var index = -1;
+			while (++index < searchLength) {
+				if (string.charCodeAt(start + index) != searchString.charCodeAt(index)) {
+					return false;
+				}
+			}
+			return true;
+		};
+		if (defineProperty) {
+			defineProperty(String.prototype, 'startsWith', {
+				'value': startsWith,
+				'configurable': true,
+				'writable': true
+			});
+		} else {
+			String.prototype.startsWith = startsWith;
+		}
+	}());
+}
+
+},{}],103:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -24378,7 +25464,7 @@ function base64DetectIncompleteChar(buffer) {
   this.charLength = this.charReceived ? 3 : 0;
 }
 
-},{"buffer":39}],98:[function(require,module,exports){
+},{"buffer":42}],104:[function(require,module,exports){
 var Buffer = require('buffer').Buffer
 
 module.exports = function (buf) {
@@ -24407,7 +25493,7 @@ module.exports = function (buf) {
 	}
 }
 
-},{"buffer":39}],99:[function(require,module,exports){
+},{"buffer":42}],105:[function(require,module,exports){
 var inherits = require('inherits')
 var native = require('./native')
 
@@ -24536,7 +25622,7 @@ module.exports = {
   getValueTypeName: getValueTypeName
 }
 
-},{"./native":102,"inherits":58}],100:[function(require,module,exports){
+},{"./native":108,"inherits":63}],106:[function(require,module,exports){
 (function (Buffer){
 var errors = require('./errors')
 
@@ -24611,7 +25697,7 @@ module.exports = {
 }
 
 }).call(this,{"isBuffer":require("../is-buffer/index.js")})
-},{"../is-buffer/index.js":59,"./errors":99}],101:[function(require,module,exports){
+},{"../is-buffer/index.js":64,"./errors":105}],107:[function(require,module,exports){
 var ERRORS = require('./errors')
 var NATIVE = require('./native')
 
@@ -24846,7 +25932,7 @@ typeforce.TfPropertyTypeError = TfPropertyTypeError
 
 module.exports = typeforce
 
-},{"./errors":99,"./extra":100,"./native":102}],102:[function(require,module,exports){
+},{"./errors":105,"./extra":106,"./native":108}],108:[function(require,module,exports){
 var types = {
   Array: function (value) { return value !== null && value !== undefined && value.constructor === Array },
   Boolean: function (value) { return typeof value === 'boolean' },
@@ -24866,7 +25952,7 @@ for (var typeName in types) {
 
 module.exports = types
 
-},{}],103:[function(require,module,exports){
+},{}],109:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -25600,7 +26686,7 @@ Url.prototype.parseHost = function() {
   if (host) this.hostname = host;
 };
 
-},{"./util":104,"punycode":66,"querystring":69}],104:[function(require,module,exports){
+},{"./util":110,"punycode":71,"querystring":74}],110:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -25618,7 +26704,7 @@ module.exports = {
   }
 };
 
-},{}],105:[function(require,module,exports){
+},{}],111:[function(require,module,exports){
 (function (global){
 
 /**
@@ -25689,16 +26775,16 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],106:[function(require,module,exports){
-arguments[4][58][0].apply(exports,arguments)
-},{"dup":58}],107:[function(require,module,exports){
+},{}],112:[function(require,module,exports){
+arguments[4][63][0].apply(exports,arguments)
+},{"dup":63}],113:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],108:[function(require,module,exports){
+},{}],114:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -26288,7 +27374,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":107,"_process":65,"inherits":106}],109:[function(require,module,exports){
+},{"./support/isBuffer":113,"_process":70,"inherits":112}],115:[function(require,module,exports){
 /*
  * verror.js: richer JavaScript errors
  */
@@ -26710,7 +27796,7 @@ WError.prototype.cause = function we_cause(c)
 	return (this.jse_cause);
 };
 
-},{"assert-plus":110,"core-util-is":44,"extsprintf":111,"util":108}],110:[function(require,module,exports){
+},{"assert-plus":116,"core-util-is":47,"extsprintf":117,"util":114}],116:[function(require,module,exports){
 (function (Buffer,process){
 // Copyright (c) 2012, Mark Cavage. All rights reserved.
 // Copyright 2015 Joyent, Inc.
@@ -26925,7 +28011,7 @@ function _setExports(ndebug) {
 module.exports = _setExports(process.env.NODE_NDEBUG);
 
 }).call(this,{"isBuffer":require("../../../is-buffer/index.js")},require('_process'))
-},{"../../../is-buffer/index.js":59,"_process":65,"assert":6,"stream":92,"util":108}],111:[function(require,module,exports){
+},{"../../../is-buffer/index.js":64,"_process":70,"assert":9,"stream":97,"util":114}],117:[function(require,module,exports){
 (function (process){
 /*
  * extsprintf.js: extended POSIX-style sprintf
@@ -27112,7 +28198,7 @@ function dumpException(ex)
 }
 
 }).call(this,require('_process'))
-},{"_process":65,"assert":6,"util":108}],112:[function(require,module,exports){
+},{"_process":70,"assert":9,"util":114}],118:[function(require,module,exports){
 (function (Buffer){
 var bs58check = require('bs58check')
 
@@ -27179,7 +28265,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bs58check":34,"buffer":39}],113:[function(require,module,exports){
+},{"bs58check":37,"buffer":42}],119:[function(require,module,exports){
 (function (process,Buffer){
 /**
  * Wrapper for built-in http.js to emulate the browser XMLHttpRequest object.
@@ -27803,7 +28889,7 @@ exports.XMLHttpRequest = function() {
 };
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"_process":65,"buffer":39,"child_process":32,"fs":32,"http":93,"https":56,"url":103}],114:[function(require,module,exports){
+},{"_process":70,"buffer":42,"child_process":35,"fs":35,"http":98,"https":61,"url":109}],120:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -27824,5 +28910,5 @@ function extend() {
     return target
 }
 
-},{}]},{},[3])(3)
+},{}]},{},[5])(5)
 });
