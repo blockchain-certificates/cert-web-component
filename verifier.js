@@ -65,6 +65,8 @@ module.exports = {
   // Try all blockchain explorers (even > MinimumBlockchainExplorers) to increase the chance of a successful query.
   Race: false,
 
+  CheckForUnmappedFields: true,
+
   PublicKey: "ecdsa-koblitz-pubkey:1",
 
   //TODO Fixes or read direct in files??
@@ -989,7 +991,7 @@ function computeLocalHashV1_1(certificateString) {
 function computeLocalHash(document, version) {
   var expandContext = document["@context"];
   var theDocument = document;
-  if (version === _default.CertificateVersion.v2_0) {
+  if (version === _default.CertificateVersion.v2_0 && _default.CheckForUnmappedFields) {
     expandContext.push({ "@vocab": "http://fallback.org/" });
   }
   var nodeDocumentLoader = _jsonld2.default.documentLoaders.node({ request: _promisifiedRequests.request });
@@ -1017,8 +1019,9 @@ function computeLocalHash(document, version) {
         var unmappedFields = getUnmappedFields(normalized);
         if (unmappedFields) {
           reject(new _verror2.default("Found unmapped fields during JSON-LD normalization: " + unmappedFields.join(",")));
+        } else {
+          resolve((0, _sha2.default)(_toUTF8Data(normalized)));
         }
-        resolve((0, _sha2.default)(_toUTF8Data(normalized)));
       }
     });
   });
@@ -1287,7 +1290,7 @@ var CertificateVerifier = exports.CertificateVerifier = function () {
     value: function _failed(completionCallback, err) {
       log('failure:' + err.message);
       this.statusCallback(_default.Status.failure, err.message);
-      throw new _verror2.default(err);
+      throw err;
     }
   }, {
     key: 'doAction',
@@ -1364,11 +1367,11 @@ var CertificateVerifier = exports.CertificateVerifier = function () {
         return checks.computeLocalHash(docToVerify, _this2.certificate.version);
       });
 
-      var _ref3 = await Promise.all([bitcoinConnectors.lookForTx(transactionId, this.certificate.chain), (0, _verifierModels.getIssuerKeys)(this.certificate.issuer.id), (0, _verifierModels.getRevocationList)(this.certificate.issuer.revocationList)]),
+      var _ref3 = await Promise.all([bitcoinConnectors.lookForTx(transactionId, this.certificate.chain), (0, _verifierModels.getIssuerKeys)(this.certificate.issuer.id), (0, _verifierModels.getRevokedAssertions)(this.certificate.issuer.revocationList)]),
           _ref4 = _slicedToArray(_ref3, 3),
           txData = _ref4[0],
           issuerKeyMap = _ref4[1],
-          issuerRevocationJson = _ref4[2];
+          revokedAssertions = _ref4[2];
 
       this.doAction(_default.Status.comparingHashes, function () {
         return checks.ensureHashesEqual(localHash, _this2.certificate.receipt.targetHash);
@@ -1380,7 +1383,7 @@ var CertificateVerifier = exports.CertificateVerifier = function () {
         return checks.ensureValidReceipt(_this2.certificate.receipt);
       });
       this.doAction(_default.Status.checkingRevokedStatus, function () {
-        return checks.ensureNotRevokedByList(issuerRevocationJson.revokedAssertions, _this2.certificate.id);
+        return checks.ensureNotRevokedByList(revokedAssertions, _this2.certificate.id);
       });
       this.doAction(_default.Status.checkingAuthenticity, function () {
         return checks.ensureValidIssuingKey(issuerKeyMap, txData.issuingAddress, txData.time);
@@ -1441,7 +1444,7 @@ function statusCallback(arg1) {
 
 async function test() {
   try {
-    //var data = await readFileAsync('../tests/data/sample_cert-valid-2.0.json');
+    var data = await (0, _promisifiedRequests.readFileAsync)('../tests/data/sample_cert-valid-1.2.0.json');
     //var data = await readFileAsync('../tests/data/sample_cert-valid-1.2.0.json');
     var certVerifier = new CertificateVerifier(data, statusCallback);
     certVerifier.verify().then(function (x) {
@@ -1455,7 +1458,7 @@ async function test() {
   }
 }
 
-//test();
+test();
 
 },{"../config/default":1,"./bitcoinConnectors":2,"./certificate":3,"./checks":4,"./promisifiedRequests":6,"./verifierModels":8,"debug":52,"string.prototype.startswith":102,"verror":115}],8:[function(require,module,exports){
 'use strict';
@@ -1468,9 +1471,15 @@ exports.parseIssuerKeys = parseIssuerKeys;
 exports.parseRevocationKey = parseRevocationKey;
 exports.getIssuerProfile = getIssuerProfile;
 exports.getIssuerKeys = getIssuerKeys;
-exports.getRevocationList = getRevocationList;
+exports.getRevokedAssertions = getRevokedAssertions;
+
+var _verror = require('verror');
+
+var _verror2 = _interopRequireDefault(_verror);
 
 var _promisifiedRequests = require('./promisifiedRequests');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -1518,7 +1527,7 @@ function parseIssuerKeys(issuerProfileJson) {
     }
     return keyMap;
   } catch (e) {
-    throw new VError(e, "Unable to parse JSON out of issuer identification data.");
+    throw new _verror2.default(e, "Unable to parse JSON out of issuer identification data.");
   }
 };
 
@@ -1535,10 +1544,10 @@ function getIssuerProfile(issuerId) {
         var issuerProfileJson = JSON.parse(response);
         resolve(issuerProfileJson);
       } catch (err) {
-        reject(new VError(err));
+        reject(new _verror2.default(err));
       }
     }).catch(function (err) {
-      reject(new VError(err));
+      reject(new _verror2.default(err));
     });
   });
   return issuerProfileFetcher;
@@ -1551,32 +1560,36 @@ function getIssuerKeys(issuerId) {
         var issuerKeyMap = parseIssuerKeys(issuerProfileJson);
         resolve(issuerKeyMap);
       } catch (err) {
-        reject(new VError(err));
+        reject(new _verror2.default(err));
       }
     }).catch(function (err) {
-      reject(new VError(err));
+      reject(new _verror2.default(err));
     });
   });
   return issuerKeyFetcher;
 }
 
-function getRevocationList(revocationListUrl) {
+function getRevokedAssertions(revocationListUrl) {
+  if (!revocationListUrl) {
+    return Promise.resolve([]);
+  }
   var revocationListFetcher = new Promise(function (resolve, reject) {
     return (0, _promisifiedRequests.request)({ url: revocationListUrl }).then(function (response) {
       try {
-        var revocationListJson = JSON.parse(response);
-        resolve(revocationListJson);
+        var issuerRevocationJson = JSON.parse(response);
+        var revokedAssertions = issuerRevocationJson.revokedAssertions ? issuerRevocationJson.revokedAssertions : [];
+        resolve(revokedAssertions);
       } catch (err) {
-        reject(new VError(err));
+        reject(new _verror2.default(err));
       }
     }).catch(function (err) {
-      reject(new VError(err));
+      reject(new _verror2.default(err));
     });
   });
   return revocationListFetcher;
 }
 
-},{"./promisifiedRequests":6}],9:[function(require,module,exports){
+},{"./promisifiedRequests":6,"verror":115}],9:[function(require,module,exports){
 (function (global){
 'use strict';
 
