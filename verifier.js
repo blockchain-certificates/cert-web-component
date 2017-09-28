@@ -878,8 +878,6 @@ var _debug2 = _interopRequireDefault(_debug);
 
 var _default = require('../config/default');
 
-var _promisifiedRequests = require('./promisifiedRequests');
-
 var _sha = require('sha256');
 
 var _sha2 = _interopRequireDefault(_sha);
@@ -902,6 +900,7 @@ CONTEXTS["https://www.blockcerts.org/schema/2.0-alpha/context.json"] = BLOCKCERT
 CONTEXTS["https://w3id.org/openbadges/v2"] = OBI_CONTEXT;
 CONTEXTS["https://openbadgespec.org/v2/context.json"] = OBI_CONTEXT;
 CONTEXTS["https://w3id.org/blockcerts/v2"] = BLOCKCERTSV2_CONTEXT;
+CONTEXTS["https://www.w3id.org/blockcerts/schema/2.0/context.json"] = BLOCKCERTSV2_CONTEXT;
 CONTEXTS["https://w3id.org/blockcerts/v1"] = BLOCKCERTSV1_2_CONTEXT;
 
 function ensureNotRevokedBySpentOutput(revokedAddresses, issuerRevocationKey, recipientRevocationKey) {
@@ -1018,7 +1017,7 @@ function computeLocalHash(document, version) {
   if (version === _default.CertificateVersion.v2_0 && _default.CheckForUnmappedFields) {
     expandContext.push({ "@vocab": "http://fallback.org/" });
   }
-  var nodeDocumentLoader = _jsonld2.default.documentLoaders.node({ request: _promisifiedRequests.request });
+  var nodeDocumentLoader = _jsonld2.default.documentLoaders.node();
   var customLoader = function customLoader(url, callback) {
     if (url in CONTEXTS) {
       return callback(null, {
@@ -1119,7 +1118,7 @@ function _hexFromByteArray(byteArray) {
   return out;
 };
 
-},{"../config/default":1,"./promisifiedRequests":6,"bitcoinjs-lib":25,"debug":52,"jsonld":67,"sha256":96,"string.prototype.startswith":102}],5:[function(require,module,exports){
+},{"../config/default":1,"bitcoinjs-lib":25,"debug":52,"jsonld":67,"sha256":96,"string.prototype.startswith":102}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -1199,8 +1198,8 @@ function request(obj) {
       }
     });
     request.addEventListener('error', function () {
-      log('Request failed with error ' + request.status);
-      reject(new _default.VerifierError(request.status));
+      log('Request failed with error ' + request.responseText);
+      reject(new _default.VerifierError(request.responseText));
     });
 
     request.open(obj.method || "GET", url);
@@ -1470,8 +1469,8 @@ function statusCallback(arg1) {
 
 async function test() {
   try {
-    var data = await (0, _promisifiedRequests.readFileAsync)('../tests/data/sample_cert-revoked-2.0.json');
-    //var data = await readFileAsync('../tests/data/sample_cert-valid-1.2.0.json');
+    //var data = await readFileAsync('../tests/data/sample_cert-revoked-2.0.json');
+    var data = await (0, _promisifiedRequests.readFileAsync)('../tests/data/sample_cert-valid-1.2.0.json');
     var certVerifier = new CertificateVerifier(data, statusCallback);
     certVerifier.verify(function (status, message) {
       console.log("completion status: " + status);
