@@ -1,6 +1,8 @@
 # \<blockchain-certificate\>
 
-### This repository is not being maintained anymore. Please check the [`<blockcerts-verifier>`](https://github.com/blockchain-certificates/blockcerts-verifier) which replaces the `cert-web-component`.
+## This repository is not being maintained anymore. Please check the [`<blockcerts-verifier>`](https://github.com/blockchain-certificates/blockcerts-verifier) which replaces the `cert-web-component`.
+
+------------------
 
 This is the easiest way to show a blockchain certificate. Follow the installation instructions below, then use the `blockchain-certificate` element pointed at the hosted certificate.
 
