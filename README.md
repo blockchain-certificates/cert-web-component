@@ -1,6 +1,6 @@
 # \<blockchain-certificate\>
 
-## This repository is not being maintained anymore. Please check the [`<blockcerts-verifier>`](https://github.com/blockchain-certificates/blockcerts-verifier) which replaces the `cert-web-component`.
+## This repository is not being maintained anymore. Please check the [`<blockcerts-verifier>`](https://github.com/blockchain-certificates/blockcerts-verifier) component if you wish to render & verify a Blockcerts.
 
 ------------------
 
